@@ -1,11 +1,36 @@
 import { PrismaClient } from '@prisma/client'
+import fs from 'fs'
+import path from 'path'
 
-const prismaClientSingleton = () => {
-  return new PrismaClient()
+let dbUrl = process.env.DATABASE_URL || "file:./dev.db";
+
+// Vercel Serverless Functions have a read-only filesystem except for /tmp.
+// We must copy the SQLite DB to /tmp to prevent "read-only database" errors.
+if (process.env.VERCEL) {
+  const tmpDbPath = '/tmp/dev.db';
+  if (!fs.existsSync(tmpDbPath)) {
+    try {
+      const originalDbPath = path.join(process.cwd(), 'prisma', 'dev.db');
+      if (fs.existsSync(originalDbPath)) {
+        fs.copyFileSync(originalDbPath, tmpDbPath);
+      }
+    } catch (e) {
+      console.error("Failed to copy dev.db to /tmp:", e);
+    }
+  }
+  dbUrl = `file:${tmpDbPath}`;
 }
 
-// Ensure Prisma client is a singleton in development to prevent too many connections
-// during fast refresh.
+const prismaClientSingleton = () => {
+  return new PrismaClient({
+    datasources: {
+      db: {
+        url: dbUrl,
+      },
+    },
+  })
+}
+
 const globalForPrisma = globalThis
 
 export const prisma = globalForPrisma.prisma ?? prismaClientSingleton()
