@@ -48,7 +48,7 @@ export default function RestaurantDetailScreen({ restaurant, onBack, onBooking }
       <div style={{ flex: 1, background: '#FFFFFF', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', marginTop: '-24px', position: 'relative', zIndex: 5, padding: '24px', overflowY: 'auto', paddingBottom: '120px' }}>
         
         {occ && (
-          <div className="occ-card" style={{ marginBottom: '24px', marginTop: '-48px', position: 'relative', zIndex: 6, background: '#FFFFFF' }}>
+          <div className="occ-card" style={{ marginBottom: '24px', background: '#FFFFFF' }}>
             <div className="occ-top">
               <div>
                 <div className="occ-label">Meja terisi saat ini</div>

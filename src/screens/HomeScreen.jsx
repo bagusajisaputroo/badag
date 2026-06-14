@@ -1,10 +1,26 @@
-import React, { useState } from 'react';
-import { restaurants, promoBanners, userProfile } from '../data/mockData';
+import React, { useState, useEffect } from 'react';
 import RestaurantCard from '../components/ui/RestaurantCard';
 
 export default function HomeScreen({ onSearch, onSelectRestaurant }) {
   const [homeCat, setHomeCat] = useState('Semua');
   const [searchQuery, setSearchQuery] = useState('');
+  const [restaurants, setRestaurants] = useState([]);
+  const [userProfile, setUserProfile] = useState(null);
+  const [promoBanners, setPromoBanners] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/restaurants')
+      .then(res => res.json())
+      .then(data => { if (Array.isArray(data)) setRestaurants(data); });
+      
+    fetch('/api/user')
+      .then(res => res.json())
+      .then(data => { if (data && !data.error) setUserProfile(data); });
+      
+    fetch('/api/promos')
+      .then(res => res.json())
+      .then(data => { if (Array.isArray(data)) setPromoBanners(data); });
+  }, []);
 
   // Filter logic based on the selected category
   const filteredRestaurants = restaurants.filter(r => {
@@ -32,7 +48,7 @@ export default function HomeScreen({ onSearch, onSelectRestaurant }) {
           <i className="ti ti-bell" style={{ fontSize: '24px' }}></i>
         </div>
         <div style={{ marginTop: '24px' }}>
-          <p style={{ opacity: 0.9 }}>Selamat pagi, {userProfile.initials} 👋</p>
+          <p style={{ opacity: 0.9 }}>Selamat pagi, {userProfile?.initials || ''} 👋</p>
           <h1 style={{ marginTop: '4px' }}>Mau makan di mana hari ini?</h1>
         </div>
         <div className="search-bar">
@@ -45,7 +61,7 @@ export default function HomeScreen({ onSearch, onSelectRestaurant }) {
           />
         </div>
         <div className="location-pill">
-          <i className="ti ti-map-pin"></i> {userProfile.location.split(',')[0]} <i className="ti ti-chevron-down" style={{fontSize:'14px'}}></i>
+          <i className="ti ti-map-pin"></i> {userProfile?.location?.split(',')[0] || ''} <i className="ti ti-chevron-down" style={{fontSize:'14px'}}></i>
         </div>
       </div>
 

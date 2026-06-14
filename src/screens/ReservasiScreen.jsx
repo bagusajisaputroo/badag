@@ -1,8 +1,55 @@
-import React, { useState } from 'react';
-import { reservations } from '../data/mockData';
+import React, { useState, useEffect } from 'react';
+import InvoiceModal from '../components/ui/InvoiceModal';
+import CancelModal from '../components/ui/CancelModal';
 
 export default function ReservasiScreen({ navigateToExplore }) {
   const [resTab, setResTab] = useState('upcoming');
+  const [reservations, setReservations] = useState({ upcoming: [], selesai: [], dibatalkan: [] });
+  
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
+
+  const [cancelTargetId, setCancelTargetId] = useState(null);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
+
+  const fetchReservations = () => {
+    fetch('/api/reservations')
+      .then(res => res.json())
+      .then(data => {
+        if (data && Array.isArray(data.upcoming)) {
+          setReservations(data);
+        }
+      });
+  };
+
+  useEffect(() => {
+    fetchReservations();
+  }, []);
+
+  const openCancel = (id) => {
+    setCancelTargetId(id);
+    setIsCancelOpen(true);
+  };
+
+  const handleCancelConfirm = async (reason) => {
+    try {
+      await fetch(`/api/reservations/${cancelTargetId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Dibatalkan', cancelReason: reason })
+      });
+      setIsCancelOpen(false);
+      setCancelTargetId(null);
+      fetchReservations();
+    } catch(e) {
+      console.error(e);
+    }
+  };
+
+  const openInvoice = (res) => {
+    setSelectedInvoice(res);
+    setIsInvoiceOpen(true);
+  };
 
   return (
     <div className="screen-content" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -30,8 +77,8 @@ export default function ReservasiScreen({ navigateToExplore }) {
                   <p className="text-muted flex-row gap-2"><i className="ti ti-users"></i> {res.guests} orang • {res.tableType}</p>
                 </div>
                 <div className="flex-row gap-3">
-                  <button className="btn-outline-navy" style={{ flex: 1 }}>Lihat Detail</button>
-                  {res.status === 'Confirmed' && <button className="btn-outline-red" style={{ flex: 1 }}>Batalkan</button>}
+                  <button className="btn-outline-navy" style={{ flex: 1 }} onClick={() => openInvoice(res)}>Lihat Detail</button>
+                  <button className="btn-outline-red" style={{ flex: 1 }} onClick={() => openCancel(res.id)}>Batalkan</button>
                 </div>
               </div>
             ))}
@@ -49,7 +96,10 @@ export default function ReservasiScreen({ navigateToExplore }) {
                 <div className="flex-col gap-2" style={{ marginBottom: '16px' }}>
                   <p className="text-muted flex-row gap-2"><i className="ti ti-calendar"></i> {res.date} • {res.time}</p>
                 </div>
-                <button className="btn-outline-teal" style={{ width: '100%' }}>Beri Ulasan</button>
+                <div className="flex-row gap-3">
+                  <button className="btn-outline-navy" style={{ flex: 1 }} onClick={() => openInvoice(res)}>Lihat Invoice</button>
+                  <button className="btn-outline-teal" style={{ flex: 1 }}>Beri Ulasan</button>
+                </div>
               </div>
             ))}
           </div>
@@ -65,6 +115,7 @@ export default function ReservasiScreen({ navigateToExplore }) {
                 </div>
                 <div className="flex-col gap-2">
                   <p className="text-muted flex-row gap-2"><i className="ti ti-calendar"></i> {res.date} • {res.time}</p>
+                  {res.cancelReason && <p className="caption text-muted flex-row gap-2" style={{ color: '#E11D48' }}><i className="ti ti-info-circle"></i> Alasan: {res.cancelReason}</p>}
                 </div>
               </div>
             ))}
@@ -75,6 +126,15 @@ export default function ReservasiScreen({ navigateToExplore }) {
       <div style={{ padding: '20px', background: 'white', borderTop: '0.5px solid #E2E8F0' }}>
         <button className="btn-cta" onClick={navigateToExplore}>Buat Reservasi Baru</button>
       </div>
+
+      {isInvoiceOpen && <InvoiceModal invoice={selectedInvoice} onClose={() => setIsInvoiceOpen(false)} />}
+      
+      {isCancelOpen && (
+        <CancelModal 
+          onClose={() => setIsCancelOpen(false)} 
+          onConfirm={handleCancelConfirm} 
+        />
+      )}
     </div>
   );
 }

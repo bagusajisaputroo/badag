@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id             String        @id @default(uuid())
+  name           String
+  email          String        @unique
+  initials       String?
+  location       String?
+  statsReservasi Int           @default(0)
+  statsUlasan    Int           @default(0)
+  statsFavorit   Int           @default(0)
+  reservations   Reservation[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model PromoBanner {
+  id        String   @id @default(uuid())
+  title     String
+  subtitle  String
+  imageUrl  String
+  color     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Restaurant {
+  id            String        @id @default(uuid())
+  name          String
+  address       String
+  city          String
+  distance      String?
+  type          String
+  rating        Float         @default(0.0)
+  reviewsCount  Int           @default(0)
+  status        String
+  imageUrl      String?
+  tags          String        // Store as JSON string or comma-separated
+  isTrending    Boolean       @default(false)
+  isRecommended Boolean       @default(false)
+  reservations  Reservation[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Reservation {
+  id             String     @id @default(uuid())
+  userId         String
+  restaurantId   String
+  status         String     // Confirmed, Menunggu Konfirmasi, Selesai, Dibatalkan
+  date           String
+  time           String
+  guests         Int
+  tableType      String
+  invoiceId      String?    @unique
+  totalAmount    Int?
+  paymentStatus  String?    @default("Unpaid")
+  cancelReason   String?
+  user           User       @relation(fields: [userId], references: [id])
+  restaurant     Restaurant @relation(fields: [restaurantId], references: [id])
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}

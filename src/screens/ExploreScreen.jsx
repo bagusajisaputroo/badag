@@ -1,11 +1,17 @@
-import React, { useState, useMemo } from 'react';
-import { restaurants } from '../data/mockData';
+import React, { useState, useEffect, useMemo } from 'react';
 import RestaurantCard from '../components/ui/RestaurantCard';
 
 export default function ExploreScreen({ onSelectRestaurant }) {
   const [exploreLoc, setExploreLoc] = useState('Bandung');
   const [exploreFilters, setExploreFilters] = useState(['Semua']);
   const [searchQuery, setSearchQuery] = useState('');
+  const [restaurants, setRestaurants] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/restaurants')
+      .then(res => res.json())
+      .then(data => { if (Array.isArray(data)) setRestaurants(data); });
+  }, []);
 
   const filterOptions = ['Semua', 'Cafe', 'Restoran', 'Fine Dining', 'Rooftop', 'Buka 24 Jam', 'Rating 4.5+'];
 
@@ -50,7 +56,7 @@ export default function ExploreScreen({ onSelectRestaurant }) {
 
       return true;
     });
-  }, [exploreLoc, exploreFilters, searchQuery]);
+  }, [exploreLoc, exploreFilters, searchQuery, restaurants]);
 
   return (
     <div className="screen-content">

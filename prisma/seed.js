@@ -1,4 +1,8 @@
-export const userProfile = {
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+const userProfile = {
   initials: "BU",
   name: "Budi Utomo",
   email: "budi.utomo@gmail.com",
@@ -10,23 +14,20 @@ export const userProfile = {
   location: "Bandung, Jawa Barat"
 };
 
-export const promoBanners = [
+const promoBanners = [
   {
-    id: 1,
     title: "Diskon 20% di Union Coffee",
     subtitle: "Klaim sekarang",
     imageUrl: "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?q=80&w=800",
     color: "linear-gradient(135deg, rgba(14,165,160,0.8), rgba(13,138,133,0.9))"
   },
   {
-    id: 2,
     title: "Happy Hour 3–6PM",
     subtitle: "Minuman beli 1 gratis 1",
     imageUrl: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=800",
     color: "linear-gradient(135deg, rgba(27,52,97,0.8), rgba(37,72,128,0.9))"
   },
   {
-    id: 3,
     title: "New Opening: Sage Rooftop",
     subtitle: "Lihat promo eksklusif",
     imageUrl: "https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?q=80&w=800",
@@ -34,9 +35,8 @@ export const promoBanners = [
   }
 ];
 
-export const restaurants = [
+const restaurants = [
   {
-    id: 'r1',
     name: 'Union Coffee Dago',
     address: 'Jl. Ir. H. Djuanda, Bandung',
     city: 'Bandung',
@@ -49,10 +49,8 @@ export const restaurants = [
     tags: ['Cafe', 'Buka 24 Jam', 'Rating 4.5+'],
     isTrending: true,
     isRecommended: false,
-    occupancy: { filled: 5, total: 20, waitlist: 0, waitTime: 0 }
   },
   {
-    id: 'r2',
     name: 'Njonja Groot',
     address: 'Jl. Hasanudin, Bandung',
     city: 'Bandung',
@@ -65,10 +63,8 @@ export const restaurants = [
     tags: ['Restoran', 'Rating 4.5+'],
     isTrending: true,
     isRecommended: false,
-    occupancy: { filled: 12, total: 15, waitlist: 2, waitTime: 15 }
   },
   {
-    id: 'r3',
     name: 'Sage Rooftop Bar',
     address: 'Sudirman, Jakarta',
     city: 'Jakarta',
@@ -81,10 +77,8 @@ export const restaurants = [
     tags: ['Rooftop', 'Restoran', 'Rating 4.5+'],
     isTrending: true,
     isRecommended: false,
-    occupancy: { filled: 8, total: 25, waitlist: 0, waitTime: 0 }
   },
   {
-    id: 'r4',
     name: 'Bellamie Boulangerie',
     address: 'Dago, Bandung',
     city: 'Bandung',
@@ -97,10 +91,8 @@ export const restaurants = [
     tags: ['Cafe', 'Rating 4.5+'],
     isTrending: false,
     isRecommended: true,
-    occupancy: { filled: 10, total: 20, waitlist: 0, waitTime: 0 }
   },
   {
-    id: 'r5',
     name: 'Roemah Nenek',
     address: 'Setiabudhi, Bandung',
     city: 'Bandung',
@@ -113,10 +105,8 @@ export const restaurants = [
     tags: ['Restoran', 'Rating 4.5+'],
     isTrending: false,
     isRecommended: true,
-    occupancy: { filled: 14, total: 16, waitlist: 1, waitTime: 10 }
   },
   {
-    id: 'r6',
     name: 'Burgreens Kemang',
     address: 'Kemang, Jakarta',
     city: 'Jakarta',
@@ -129,10 +119,8 @@ export const restaurants = [
     tags: ['Restoran', 'Rating 4.5+'],
     isTrending: false,
     isRecommended: true,
-    occupancy: { filled: 5, total: 12, waitlist: 0, waitTime: 0 }
   },
   {
-    id: 'r7',
     name: 'Kopi Tuku',
     address: 'Cipete, Jakarta',
     city: 'Jakarta',
@@ -145,10 +133,8 @@ export const restaurants = [
     tags: ['Cafe', 'Buka 24 Jam', 'Rating 4.5+'],
     isTrending: true,
     isRecommended: false,
-    occupancy: { filled: 3, total: 10, waitlist: 0, waitTime: 0 }
   },
   {
-    id: 'r8',
     name: 'Dailydose Coffee',
     address: 'Menteng, Jakarta',
     city: 'Jakarta',
@@ -161,10 +147,8 @@ export const restaurants = [
     tags: ['Cafe', 'Rating 4.5+'],
     isTrending: false,
     isRecommended: true,
-    occupancy: { filled: 8, total: 15, waitlist: 0, waitTime: 0 }
   },
   {
-    id: 'r9',
     name: 'Namaaz Dining',
     address: 'Senopati, Jakarta',
     city: 'Jakarta',
@@ -177,56 +161,134 @@ export const restaurants = [
     tags: ['Fine Dining', 'Restoran', 'Rating 4.5+'],
     isTrending: true,
     isRecommended: false,
-    occupancy: { filled: 10, total: 10, waitlist: 5, waitTime: 45 }
   }
 ];
 
-export const reservations = {
-  upcoming: [
-    {
-      id: 'res1',
-      restaurantName: 'Union Coffee Dago',
-      status: 'Confirmed',
-      date: 'Sabtu, 17 Mei 2025',
-      time: '19.00 WIB',
-      guests: 2,
-      tableType: 'Meja Indoor',
-      location: 'Bandung'
+const reservations = [
+  {
+    restaurantName: 'Union Coffee Dago',
+    status: 'Confirmed',
+    date: 'Sabtu, 17 Mei 2025',
+    time: '19.00 WIB',
+    guests: 2,
+    tableType: 'Meja Indoor',
+  },
+  {
+    restaurantName: 'Kopi Tuku',
+    status: 'Menunggu Konfirmasi',
+    date: 'Minggu, 18 Mei 2025',
+    time: '10.00 WIB',
+    guests: 3,
+    tableType: 'Meja Outdoor',
+  },
+  {
+    restaurantName: 'Roemah Nenek',
+    date: '10 Mei 2025',
+    time: '18.30 WIB',
+    status: 'Selesai'
+  },
+  {
+    restaurantName: 'Bellamie Boulangerie',
+    date: '2 April 2025',
+    time: '18.30 WIB',
+    status: 'Selesai'
+  },
+  {
+    restaurantName: 'Burgreens Kemang',
+    date: '1 Mei 2025',
+    time: '12.00 WIB',
+    status: 'Dibatalkan'
+  }
+];
+
+async function main() {
+  console.log('Start seeding...');
+
+  // Clean existing data to avoid duplicates if re-run
+  await prisma.reservation.deleteMany();
+  await prisma.restaurant.deleteMany();
+  await prisma.promoBanner.deleteMany();
+  await prisma.user.deleteMany();
+
+  // 1. Create Default User
+  const user = await prisma.user.create({
+    data: {
+      name: userProfile.name,
+      email: userProfile.email,
+      initials: userProfile.initials,
+      location: userProfile.location,
+      statsReservasi: userProfile.stats.reservasi,
+      statsUlasan: userProfile.stats.ulasan,
+      statsFavorit: userProfile.stats.favorit,
     },
-    {
-      id: 'res2',
-      restaurantName: 'Kopi Tuku',
-      status: 'Menunggu Konfirmasi',
-      date: 'Minggu, 18 Mei 2025',
-      time: '10.00 WIB',
-      guests: 3,
-      tableType: 'Meja Outdoor',
-      location: 'Cipete, Jakarta'
+  });
+  console.log(`Created user with id: ${user.id}`);
+
+  // 2. Create Promo Banners
+  for (const p of promoBanners) {
+    await prisma.promoBanner.create({ data: p });
+  }
+  console.log(`Created ${promoBanners.length} promo banners`);
+
+  // 3. Create Restaurants
+  const restaurantMap = {};
+  for (const r of restaurants) {
+    const createdRestaurant = await prisma.restaurant.create({
+      data: {
+        name: r.name,
+        address: r.address,
+        city: r.city,
+        distance: r.distance,
+        type: r.type,
+        rating: r.rating,
+        reviewsCount: r.reviewsCount,
+        status: r.status,
+        imageUrl: r.imageUrl,
+        tags: JSON.stringify(r.tags),
+        isTrending: r.isTrending,
+        isRecommended: r.isRecommended,
+      },
+    });
+    restaurantMap[r.name] = createdRestaurant.id;
+    console.log(`Created restaurant: ${createdRestaurant.name}`);
+  }
+
+  // 4. Create Reservations
+  for (const res of reservations) {
+    const restoId = restaurantMap[res.restaurantName];
+    if (restoId) {
+      const randomHex = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const invoiceId = `INV-${dateStr}-${randomHex}`;
+      const guests = res.guests || 2;
+      const totalAmount = guests * 50000;
+
+      await prisma.reservation.create({
+        data: {
+          userId: user.id,
+          restaurantId: restoId,
+          status: res.status,
+          date: res.date,
+          time: res.time,
+          guests: guests,
+          tableType: res.tableType || 'Meja Indoor',
+          invoiceId,
+          totalAmount,
+          paymentStatus: 'Unpaid'
+        },
+      });
+      console.log(`Created reservation for: ${res.restaurantName}`);
     }
-  ],
-  selesai: [
-    {
-      id: 'res3',
-      restaurantName: 'Roemah Nenek',
-      date: '10 Mei 2025',
-      time: '18.30 WIB',
-      status: 'Selesai'
-    },
-    {
-      id: 'res4',
-      restaurantName: 'Bellamie Boulangerie',
-      date: '2 April 2025',
-      time: '18.30 WIB',
-      status: 'Selesai'
-    }
-  ],
-  dibatalkan: [
-    {
-      id: 'res5',
-      restaurantName: 'Burgreens Kemang',
-      date: '1 Mei 2025',
-      time: '12.00 WIB',
-      status: 'Dibatalkan'
-    }
-  ]
-};
+  }
+
+  console.log('Seeding finished.');
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

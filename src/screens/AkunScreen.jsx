@@ -1,8 +1,16 @@
-import React, { useState } from 'react';
-import { userProfile } from '../data/mockData';
+import React, { useState, useEffect } from 'react';
 
 export default function AkunScreen() {
   const [notifOn, setNotifOn] = useState(true);
+  const [userProfile, setUserProfile] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/user')
+      .then(res => res.json())
+      .then(data => setUserProfile(data));
+  }, []);
+
+  if (!userProfile) return <div className="screen-content" style={{ padding: '20px' }}>Loading...</div>;
 
   return (
     <div className="screen-content">
