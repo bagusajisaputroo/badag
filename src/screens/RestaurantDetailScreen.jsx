@@ -19,8 +19,8 @@ export default function RestaurantDetailScreen({ restaurant, onBack, onBooking }
     <div className="screen-content" style={{ paddingBottom: 0, position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
       
       {/* Hero Header */}
-      <div style={{ position: 'relative', height: '320px', backgroundImage: `url(${restaurant.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, transparent 40%, rgba(0,0,0,0.8) 100%)' }}></div>
+      <div style={{ position: 'relative', height: '360px', backgroundImage: `url(${restaurant.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, transparent 50%, rgba(0,0,0,0.85) 100%)' }}></div>
         
         {/* Back Button positioned below dynamic island */}
         <div style={{ position: 'absolute', top: '56px', left: '20px', zIndex: 10 }}>
@@ -33,7 +33,7 @@ export default function RestaurantDetailScreen({ restaurant, onBack, onBooking }
         </div>
 
         {/* Hero Content */}
-        <div style={{ position: 'absolute', bottom: '24px', left: '20px', right: '20px', color: 'white' }}>
+        <div style={{ position: 'absolute', bottom: '80px', left: '20px', right: '20px', color: 'white' }}>
           <div className="flex-row justify-between" style={{ alignItems: 'flex-end' }}>
             <div>
               <span className={`chip ${getStatusClass(restaurant.status)}`} style={{ marginBottom: '8px' }}>{restaurant.status}</span>
