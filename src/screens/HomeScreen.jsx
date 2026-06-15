@@ -31,9 +31,15 @@ export default function HomeScreen({ onSearch, onSelectRestaurant }) {
 
   const trending = filteredRestaurants.filter(r => r.isTrending);
   // Show the rest as recommended, or if category is selected, show all matches
-  const recommended = homeCat === 'Semua' 
+  // Show the rest as recommended, or if category is selected, show all matches
+  let recommended = homeCat === 'Semua' 
     ? filteredRestaurants.filter(r => r.isRecommended)
     : filteredRestaurants.filter(r => !r.isTrending);
+
+  // Fallback: If no recommended restaurants are set in DB, show all non-trending
+  if (homeCat === 'Semua' && recommended.length === 0) {
+    recommended = filteredRestaurants.filter(r => !r.isTrending);
+  }
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);

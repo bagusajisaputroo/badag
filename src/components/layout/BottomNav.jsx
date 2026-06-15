@@ -16,8 +16,7 @@ export default function BottomNav({ activeTab, setActiveTab }) {
           className={`nav-item ${activeTab === tab.id ? 'active' : ''}`} 
           onClick={() => setActiveTab(tab.id)}
         >
-          <i className={`ti ${tab.icon}${activeTab === tab.id ? '-filled' : ''}`}></i>
-          <span>{tab.label}</span>
+          <i className={`ti ${tab.icon}`}></i>
         </div>
       ))}
     </div>

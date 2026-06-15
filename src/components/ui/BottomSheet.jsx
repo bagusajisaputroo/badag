@@ -1,89 +1,78 @@
-import React, { useState, useEffect } from 'react';
-import { DatePickerInput } from '@mantine/dates';
-import Lightbox from "yet-another-react-lightbox";
-import Zoom from "yet-another-react-lightbox/plugins/zoom";
-import 'dayjs/locale/id';
+import React, { useState, useEffect, useMemo } from 'react';
 
-export default function BottomSheet({ isOpen, onClose, title, onConfirm }) {
-  const [guests, setGuests] = useState('');
-  const [tableType, setTableType] = useState('');
-  const [selectedDate, setSelectedDate] = useState(null);
+export default function BottomSheet({ isOpen, onClose, restaurant, onConfirm }) {
+  const [guests, setGuests] = useState('2');
+  const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
-  const [notes, setNotes] = useState('');
-
-  const [isAreaModalOpen, setIsAreaModalOpen] = useState(false);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [lightboxImages, setLightboxImages] = useState([]);
-
-  const allTimes = React.useMemo(() => {
-    const times = [];
-    for (let i = 12; i <= 21; i++) {
-      const h = i.toString().padStart(2, '0');
-      // Create some realistic unavailability patterns
-      const available00 = i !== 14 && i !== 18;
-      times.push({ time: `${h}:00`, available: available00 });
-      
-      if (i < 21) {
-        const available30 = i !== 12 && i !== 19;
-        times.push({ time: `${h}:30`, available: available30 });
-      }
-    }
-    return times;
-  }, []);
-
-  const areas = [
-    {
-      id: 'Indoor',
-      name: 'Indoor',
-      images: [
-        'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80'
-      ],
-      description: 'Area di dalam ruangan dengan AC dan suasana cozy.'
-    },
-    {
-      id: 'Outdoor',
-      name: 'Outdoor',
-      images: [
-        'https://images.unsplash.com/photo-1533777857889-4be7c70b33f7?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1505275350441-83dcda8eeef5?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1525610553991-2bede1a236e2?auto=format&fit=crop&w=800&q=80'
-      ],
-      description: 'Area luar ruangan yang sejuk dan asri.'
-    },
-    {
-      id: 'Rooftop',
-      name: 'Rooftop',
-      images: [
-        'https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1572116469696-31de0f17cc34?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1513622470522-26c311a0711a?auto=format&fit=crop&w=800&q=80'
-      ],
-      description: 'Pemandangan kota yang indah dari atas gedung.'
-    }
-  ];
+  const [tableType, setTableType] = useState('');
+  const [availabilityData, setAvailabilityData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const [startY, setStartY] = useState(null);
   const [currentY, setCurrentY] = useState(0);
   const [isClosing, setIsClosing] = useState(false);
+
+  const dateOptions = useMemo(() => {
+    const dates = [];
+    const today = new Date();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(today.getDate() + i);
+      let label = '';
+      if (i === 0) label = 'Hari Ini';
+      else if (i === 1) label = 'Besok';
+      else label = d.toLocaleDateString('id-ID', { weekday: 'long' });
+      
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      
+      dates.push({
+        dateStr: `${year}-${month}-${day}`,
+        label,
+        displayDate: d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
+      });
+    }
+    return dates;
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
       setIsClosing(false);
       setStartY(null);
       setCurrentY(0);
-      setIsAreaModalOpen(false);
-      setLightboxOpen(false);
-      // Reset form data when opened
-      setGuests('');
+      setGuests('2');
       setTableType('');
-      setSelectedDate(null);
       setSelectedTime('');
-      setNotes('');
+      setErrorMsg('');
+      if (!selectedDate) setSelectedDate(dateOptions[0].dateStr);
     }
-  }, [isOpen]);
+  }, [isOpen, dateOptions]);
+
+  useEffect(() => {
+    if (isOpen && restaurant && restaurant.id && selectedDate) {
+      setIsLoading(true);
+      setErrorMsg('');
+      fetch(`/api/restaurants/${restaurant.id}/availability?date=${selectedDate}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setAvailabilityData(data.availability);
+          } else {
+            setErrorMsg(data.error || 'Unknown error from API');
+          }
+          setIsLoading(false);
+        })
+        .catch(err => {
+          setErrorMsg(err.message);
+          setIsLoading(false);
+        });
+    } else if (isOpen) {
+      if (!restaurant) setErrorMsg('No restaurant data');
+      else if (!restaurant.id) setErrorMsg('No restaurant ID');
+    }
+  }, [isOpen, restaurant, selectedDate]);
 
   const handleClose = () => {
     setIsClosing(true);
@@ -93,16 +82,11 @@ export default function BottomSheet({ isOpen, onClose, title, onConfirm }) {
   };
 
   const handleConfirmClick = () => {
-    if (!selectedDate || !guests || guests <= 0 || !selectedTime || !tableType) {
-      alert('Mohon lengkapi Tanggal, Jumlah Tamu, Waktu, dan Area Meja.');
+    if (!selectedDate || !guests || !selectedTime || !tableType) {
+      alert('Mohon pilih Tanggal, Jam, dan Area.');
       return;
     }
-    const d = new Date(selectedDate);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const dateStr = `${year}-${month}-${day}`;
-    onConfirm({ guests: parseInt(guests), tableType, date: dateStr, time: selectedTime, notes });
+    onConfirm({ guests: parseInt(guests), tableType, date: selectedDate, time: selectedTime, notes: '' });
   };
 
   if (!isOpen) return null;
@@ -118,251 +102,176 @@ export default function BottomSheet({ isOpen, onClose, title, onConfirm }) {
           className="bottom-sheet" 
           onClick={e => e.stopPropagation()} 
           style={{ 
-            padding: '24px 20px 32px', height: '85%', display: 'flex', flexDirection: 'column',
+            padding: 0, height: '90%', display: 'flex', flexDirection: 'column',
             transform: `translateY(${translateY})`,
-            transition: transition
+            transition: transition,
+            background: '#F8FAFC'
           }}
         >
-          
-          <div 
-            onPointerDown={(e) => { 
-              e.currentTarget.setPointerCapture(e.pointerId); 
-              setStartY(e.clientY); 
-              setCurrentY(e.clientY);
-            }}
-            onPointerMove={(e) => {
-              if (startY !== null) {
-                setCurrentY(e.clientY);
-              }
-            }}
-            onPointerUp={(e) => {
-              e.currentTarget.releasePointerCapture(e.pointerId);
-              if (startY !== null && e.clientY - startY > 80) {
-                handleClose();
-              } else {
-                setStartY(null);
-                setCurrentY(0);
-              }
-            }}
-            onClick={handleClose}
-            style={{ padding: '16px 0', marginTop: '-16px', cursor: 'grab', display: 'flex', justifyContent: 'center', flexShrink: 0 }}
-          >
-            <div style={{ width: '40px', height: '4px', background: '#E2E8F0', borderRadius: '2px' }}></div>
+          {/* Header */}
+          <div style={{ padding: '20px 20px 16px', background: 'white', display: 'flex', alignItems: 'center', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, zIndex: 10 }}>
+            <div onClick={handleClose} style={{ cursor: 'pointer', marginRight: '16px' }}>
+              <i className="ti ti-arrow-left" style={{ fontSize: '24px', color: '#1B3461' }}></i>
+            </div>
+            <h1 className="text-navy" style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Pilih Waktu</h1>
           </div>
           
-          {isAreaModalOpen ? (
-            <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '24px', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
-                <button 
-                  onClick={() => setIsAreaModalOpen(false)} 
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '16px', display: 'flex', alignItems: 'center' }}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+            
+            {/* Dates Horizontal Scroll */}
+            <div className="horizontal-scroll" style={{ paddingBottom: '8px', margin: '0 -20px 24px', paddingLeft: '20px', paddingRight: '20px' }}>
+              {dateOptions.map(opt => (
+                <div 
+                  key={opt.dateStr}
+                  onClick={() => {
+                    setSelectedDate(opt.dateStr);
+                    setSelectedTime('');
+                    setTableType('');
+                  }}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    padding: '12px 20px', borderRadius: '12px', minWidth: '100px', cursor: 'pointer',
+                    background: selectedDate === opt.dateStr ? '#1B3461' : 'white',
+                    border: '1px solid ' + (selectedDate === opt.dateStr ? '#1B3461' : '#E2E8F0'),
+                    color: selectedDate === opt.dateStr ? 'white' : '#64748B',
+                    transition: 'all 0.2s ease'
+                  }}
                 >
-                  <i className="ti ti-arrow-left" style={{ fontSize: '24px', color: '#1B3461' }}></i>
-                </button>
-                <h1 className="text-navy" style={{ fontSize: '20px', margin: 0 }}>Pilih Area Meja</h1>
-              </div>
-              <p className="caption text-muted" style={{ marginBottom: '16px' }}>Geser untuk melihat foto lain, ketuk foto untuk memperbesar.</p>
-              
-              <div className="flex-col gap-4">
-                {areas.map(area => (
+                  <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px' }}>{opt.label}</div>
+                  <div style={{ fontSize: '12px', fontWeight: 500, opacity: selectedDate === opt.dateStr ? 0.9 : 1 }}>{opt.displayDate}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Jumlah Orang Dropdown */}
+            <h2 className="text-navy" style={{ fontSize: '15px', marginBottom: '12px' }}>Jumlah Orang</h2>
+            <div style={{ marginBottom: '32px', position: 'relative' }}>
+              <select 
+                value={guests} 
+                onChange={(e) => setGuests(e.target.value)}
+                style={{
+                  appearance: 'none',
+                  width: '140px', padding: '12px 16px', borderRadius: '12px',
+                  border: '1px solid #E2E8F0', background: 'white',
+                  color: '#1B3461', fontSize: '15px', fontWeight: 700,
+                  outline: 'none', cursor: 'pointer'
+                }}
+              >
+                {[1,2,3,4,5,6,7,8,9,10,12,15,20].map(n => (
+                  <option key={n} value={n}>{n} Orang</option>
+                ))}
+              </select>
+              <i className="ti ti-chevron-down" style={{ position: 'absolute', left: '105px', top: '14px', color: '#1B3461', pointerEvents: 'none' }}></i>
+            </div>
+
+            {/* Time List */}
+            <h2 className="text-navy" style={{ fontSize: '13px', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '12px' }}>Pilih Waktu (One Point)</h2>
+            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden', marginBottom: '32px' }}>
+              {errorMsg ? (
+                <div style={{ padding: '32px', textAlign: 'center', color: '#EF4444', fontSize: '14px', fontWeight: 600 }}>
+                  Error: {errorMsg}
+                </div>
+              ) : isLoading ? (
+                <div style={{ padding: '32px', textAlign: 'center', color: '#64748B' }}>Memuat ketersediaan...</div>
+              ) : availabilityData.length === 0 ? (
+                <div style={{ padding: '32px', textAlign: 'center', color: '#64748B' }}>Tidak ada jadwal tersedia.</div>
+              ) : (
+                availabilityData.map((slot, idx) => (
                   <div 
-                    key={area.id} 
-                    className={`card ${tableType === area.id ? 'active' : ''}`}
-                    style={{ padding: '0', overflow: 'hidden', border: tableType === area.id ? '2px solid #1B3461' : '1px solid #E2E8F0' }}
+                    key={slot.time}
+                    onClick={() => {
+                      if (!slot.isFull) {
+                        setSelectedTime(slot.time);
+                        setTableType(''); // Reset area on time change
+                      }
+                    }}
+                    style={{ 
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '16px', borderBottom: idx < availabilityData.length - 1 ? '1px solid #F1F5F9' : 'none',
+                      background: selectedTime === slot.time ? '#F8FAFC' : 'white',
+                      cursor: slot.isFull ? 'not-allowed' : 'pointer',
+                      opacity: slot.isFull ? 0.6 : 1
+                    }}
                   >
-                    <div style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', padding: '12px', gap: '12px' }}>
-                      {area.images.map((img, idx) => (
-                        <img 
-                          key={idx}
-                          src={img} 
-                          alt={`${area.name} ${idx + 1}`} 
-                          style={{ width: '85%', height: '160px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0, scrollSnapAlign: 'center', cursor: 'zoom-in' }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setLightboxImages(area.images.map(src => ({ src })));
-                            setLightboxIndex(idx);
-                            setLightboxOpen(true);
-                          }}
-                        />
-                      ))}
-                    </div>
-                    <div style={{ padding: '0 16px 16px' }}>
-                      <h3 className="text-navy" style={{ marginBottom: '4px' }}>{area.name}</h3>
-                      <p className="caption text-muted" style={{ marginBottom: '16px' }}>{area.description}</p>
-                      <button 
-                        className="btn-cta" 
-                        style={{ height: '40px', fontSize: '13px' }}
-                        onClick={() => {
-                          setTableType(area.id);
-                          setIsAreaModalOpen(false);
-                        }}
-                      >
-                        Pilih {area.name}
-                      </button>
+                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#1B3461' }}>{slot.time}</div>
+                    <div style={{ 
+                      padding: '4px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700,
+                      background: slot.isFull ? '#FEF2F2' : '#ECFDF5',
+                      color: slot.isFull ? '#EF4444' : '#10B981'
+                    }}>
+                      {slot.isFull ? 'Full' : `${slot.totalAvailable} Slot`}
                     </div>
                   </div>
-                ))}
-              </div>
+                ))
+              )}
             </div>
-          ) : (
-            <>
-              <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '24px' }}>
-                <h1 className="text-navy" style={{ marginBottom: '4px', fontSize: '20px' }}>Reservasi Meja</h1>
-                <p className="text-muted" style={{ marginBottom: '24px' }}>{title}</p>
-                
-                {/* Date Section */}
-                <h2 className="text-navy" style={{ marginBottom: '12px' }}>Tanggal <span style={{color: 'red'}}>*</span></h2>
-                <div style={{ marginBottom: '24px' }}>
+
+            {/* Area Selection (Appears only after a time is selected) */}
+            {selectedTime && (
+              <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                <h2 className="text-navy" style={{ fontSize: '15px', marginBottom: '12px' }}>Pilih Area Meja</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {(() => {
-                    const today = new Date();
-                    const maxDate = new Date();
-                    maxDate.setDate(today.getDate() + 7);
-                    return (
-                      <DatePickerInput 
-                        locale="id"
-                        placeholder="Ketuk untuk memilih tanggal"
-                        valueFormat="DD MMMM YYYY"
-                        value={selectedDate}
-                        onChange={setSelectedDate}
-                        minDate={today}
-                        maxDate={maxDate}
-                        popoverProps={{ withinPortal: false }}
-                        styles={{
-                          input: {
-                            padding: '24px 16px',
-                            borderRadius: '12px',
-                            border: '1px solid #E2E8F0',
-                            fontSize: '15px',
-                            fontFamily: 'Inter',
-                            color: '#1B3461',
-                            fontWeight: 600,
-                            textAlign: 'center',
-                            cursor: 'pointer'
-                          }
-                        }}
-                      />
-                    );
+                    const slot = availabilityData.find(s => s.time === selectedTime);
+                    if (!slot) return null;
+                    
+                    return Object.values(slot.areas).map(area => {
+                      const isFull = area.available === 0;
+                      return (
+                        <div 
+                          key={area.name}
+                          onClick={() => !isFull && setTableType(area.name)}
+                          style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            padding: '16px', borderRadius: '12px',
+                            background: isFull ? '#F1F5F9' : tableType === area.name ? '#1B3461' : 'white',
+                            border: '1px solid ' + (tableType === area.name ? '#1B3461' : '#E2E8F0'),
+                            color: tableType === area.name ? 'white' : '#1B3461',
+                            cursor: isFull ? 'not-allowed' : 'pointer',
+                            opacity: isFull ? 0.6 : 1
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: '15px', fontWeight: 700 }}>{area.name}</div>
+                            <div style={{ fontSize: '12px', color: tableType === area.name ? '#93C5FD' : '#64748B', marginTop: '2px' }}>
+                              Kapasitas: {area.allocated} Meja
+                            </div>
+                          </div>
+                          <div style={{ 
+                            padding: '4px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700,
+                            background: isFull ? '#FEF2F2' : tableType === area.name ? 'rgba(255,255,255,0.2)' : '#ECFDF5',
+                            color: isFull ? '#EF4444' : tableType === area.name ? 'white' : '#10B981'
+                          }}>
+                            {isFull ? 'Full' : `${area.available} Slot`}
+                          </div>
+                        </div>
+                      );
+                    });
                   })()}
                 </div>
-  
-                {/* Guests Section */}
-                <h2 className="text-navy" style={{ marginBottom: '12px' }}>Jumlah Tamu <span style={{color: 'red'}}>*</span></h2>
-                <div className="flex-row justify-between card" style={{ padding: '12px 16px', marginBottom: '24px' }}>
-                  <span className="text-navy" style={{ fontWeight: 600 }}>Orang</span>
-                  <div className="flex-row gap-4">
-                    <button 
-                      onClick={() => setGuests(Math.max(1, (parseInt(guests) || 0) - 1))}
-                      style={{ width: '32px', height: '32px', borderRadius: '16px', border: '1px solid #E2E8F0', background: 'white', color: '#1B3461', fontSize: '18px', cursor: 'pointer' }}
-                    >-</button>
-                    <input 
-                      type="number"
-                      value={guests}
-                      onChange={(e) => setGuests(e.target.value)}
-                      style={{ width: '40px', textAlign: 'center', border: 'none', fontSize: '16px', fontWeight: 700, color: '#1B3461', outline: 'none', background: 'transparent' }}
-                      placeholder="0"
-                    />
-                    <button 
-                      onClick={() => setGuests((parseInt(guests) || 0) + 1)}
-                      style={{ width: '32px', height: '32px', borderRadius: '16px', border: 'none', background: '#F1F5F9', color: '#1B3461', fontSize: '18px', cursor: 'pointer' }}
-                    >+</button>
-                  </div>
-                </div>
-  
-                {/* Time Section */}
-                <h2 className="text-navy" style={{ marginBottom: '12px' }}>Waktu <span style={{color: 'red'}}>*</span></h2>
-                
-                <div style={{ textAlign: 'center', marginBottom: '16px', background: '#F8FAFC', borderRadius: '12px', padding: '16px' }}>
-                   <h1 style={{ fontSize: '32px', color: '#1B3461', letterSpacing: '2px', fontWeight: 700 }}>{selectedTime || '--:--'}</h1>
-                   <p className="caption">Waktu reservasi yang dipilih</p>
-                </div>
-  
-                <div style={{ marginBottom: '24px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                    {allTimes.map(t => (
-                      <div 
-                        key={t.time} 
-                        onClick={() => t.available && setSelectedTime(t.time)}
-                        className={`chip ${t.time === selectedTime ? 'active' : ''}`} 
-                        style={{ 
-                          padding: '10px 0', fontSize: '13px', textAlign: 'center',
-                          border: '1px solid ' + (t.time === selectedTime ? '#1B3461' : t.available ? '#E2E8F0' : '#F1F5F9'), 
-                          background: t.time === selectedTime ? '#1B3461' : t.available ? 'white' : '#F8FAFC', 
-                          color: t.time === selectedTime ? 'white' : t.available ? '#1B3461' : '#CBD5E1', 
-                          cursor: t.available ? 'pointer' : 'not-allowed',
-                          opacity: t.available ? 1 : 0.6
-                        }}
-                      >
-                        {t.time}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-  
-                {/* Table Type Section */}
-                <h2 className="text-navy" style={{ marginBottom: '12px' }}>Area Meja <span style={{color: 'red'}}>*</span></h2>
-                <div style={{ marginBottom: '24px' }}>
-                  {tableType ? (
-                    <div 
-                      className="card flex-row justify-between align-center" 
-                      style={{ padding: '16px', border: '1px solid #1B3461', background: '#F8FAFC', cursor: 'pointer' }}
-                      onClick={() => setIsAreaModalOpen(true)}
-                    >
-                      <div className="flex-row gap-3 align-center" style={{ flex: 1 }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#E2E8F0', overflow: 'hidden', flexShrink: 0 }}>
-                          <img 
-                            src={areas.find(a => a.id === tableType)?.images[0] || areas[0].images[0]} 
-                            alt={tableType} 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                        </div>
-                        <div>
-                          <p className="text-navy" style={{ fontWeight: 600 }}>{tableType}</p>
-                          <p className="caption text-muted">Area yang dipilih</p>
-                        </div>
-                      </div>
-                      <button className="btn-outline-navy" style={{ padding: '6px 12px', fontSize: '12px', flexShrink: 0 }}>Ubah</button>
-                    </div>
-                  ) : (
-                    <button 
-                      className="btn-outline-navy" 
-                      style={{ width: '100%', padding: '16px', borderStyle: 'dashed' }}
-                      onClick={() => setIsAreaModalOpen(true)}
-                    >
-                      <i className="ti ti-photo" style={{ marginRight: '8px' }}></i>
-                      Pilih Area
-                    </button>
-                  )}
-                </div>
-  
-                {/* Special Requests */}
-                <h2 className="text-navy" style={{ marginBottom: '12px' }}>Catatan Khusus (Opsional)</h2>
-                <textarea 
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Contoh: Ada yang ulang tahun, minta kursi bayi..."
-                  style={{ width: '100%', height: '80px', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '12px', fontSize: '13px', outline: 'none', resize: 'none', fontFamily: 'Inter' }}
-                ></textarea>
               </div>
+            )}
+            
+          </div>
   
-              <div style={{ flexShrink: 0, marginTop: '16px' }}>
-                <button className="btn-cta" onClick={handleConfirmClick}>Konfirmasi Booking</button>
-              </div>
-            </>
-          )}
+          <div style={{ flexShrink: 0, padding: '16px 20px', background: 'white', borderTop: '1px solid #E2E8F0' }}>
+            <button 
+              className="btn-cta" 
+              onClick={handleConfirmClick}
+              disabled={!selectedTime || !tableType}
+              style={{
+                width: '100%', padding: '16px', borderRadius: '16px', border: 'none',
+                background: (!selectedTime || !tableType) ? '#94A3B8' : '#0EA5A0',
+                color: 'white', fontSize: '16px', fontWeight: 700, cursor: (!selectedTime || !tableType) ? 'not-allowed' : 'pointer',
+                transition: 'background 0.3s ease'
+              }}
+            >
+              Konfirmasi Booking
+            </button>
+          </div>
+          
         </div>
-        
       </div>
-      
-      {lightboxOpen && (
-        <Lightbox
-          open={lightboxOpen}
-          close={() => setLightboxOpen(false)}
-          index={lightboxIndex}
-          slides={lightboxImages}
-          plugins={[Zoom]}
-          carousel={{ finite: true }}
-        />
-      )}
     </>
   );
 }

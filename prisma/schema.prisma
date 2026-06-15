@@ -45,9 +45,23 @@ model Restaurant {
   tags          String        // Store as JSON string or comma-separated
   isTrending    Boolean       @default(false)
   isRecommended Boolean       @default(false)
+  loginEmail    String?       @unique
+  loginPassword String?
   reservations  Reservation[]
+  areas         RestaurantArea[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+}
+
+model RestaurantArea {
+  id              String     @id @default(uuid())
+  restaurantId    String
+  name            String
+  total           Int
+  seatoAllocated  Int
+  seatoOccupied   Int        @default(0)
+  walkInOccupied  Int        @default(0)
+  restaurant      Restaurant @relation(fields: [restaurantId], references: [id])
 }
 
 model Reservation {

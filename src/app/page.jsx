@@ -9,6 +9,7 @@ import InvoiceModal from '../components/ui/InvoiceModal';
 import toast, { Toaster } from 'react-hot-toast';
 
 // Screens
+import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ExploreScreen from '../screens/ExploreScreen';
 import ReservasiScreen from '../screens/ReservasiScreen';
@@ -16,6 +17,7 @@ import AkunScreen from '../screens/AkunScreen';
 import RestaurantDetailScreen from '../screens/RestaurantDetailScreen';
 
 export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedRestoForBooking, setSelectedRestoForBooking] = useState('');
@@ -24,8 +26,7 @@ export default function App() {
   const [newBookingInvoice, setNewBookingInvoice] = useState(null);
 
   const openBooking = (restaurantData) => {
-    const name = typeof restaurantData === 'string' ? restaurantData : restaurantData.name;
-    setSelectedRestoForBooking(name);
+    setSelectedRestoForBooking(restaurantData);
     setSheetOpen(true);
   };
 
@@ -82,21 +83,27 @@ export default function App() {
   return (
     <>
       <DeviceFrame activeTab={activeTab}>
-        {renderActiveScreen()}
-        {!viewingRestaurant && <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />}
-        
-        <BottomSheet 
-          isOpen={sheetOpen} 
-          onClose={() => setSheetOpen(false)} 
-          title={selectedRestoForBooking}
-          onConfirm={handleBookingConfirm}
-        />
+        {!isLoggedIn ? (
+          <LoginScreen onLogin={() => setIsLoggedIn(true)} />
+        ) : (
+          <>
+            {renderActiveScreen()}
+            {!viewingRestaurant && <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />}
+            
+            <BottomSheet 
+              isOpen={sheetOpen} 
+              onClose={() => setSheetOpen(false)} 
+              restaurant={selectedRestoForBooking}
+              onConfirm={handleBookingConfirm}
+            />
 
-        {newBookingInvoice && (
-          <InvoiceModal 
-            invoice={newBookingInvoice} 
-            onClose={closeBookingInvoice} 
-          />
+            {newBookingInvoice && (
+              <InvoiceModal 
+                invoice={newBookingInvoice} 
+                onClose={closeBookingInvoice} 
+              />
+            )}
+          </>
         )}
       </DeviceFrame>
       
