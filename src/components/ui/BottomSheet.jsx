@@ -97,8 +97,11 @@ export default function BottomSheet({ isOpen, onClose, title, onConfirm }) {
       alert('Mohon lengkapi Tanggal, Jumlah Tamu, Waktu, dan Area Meja.');
       return;
     }
-    const d = new Date(selectedDate.getTime() - (selectedDate.getTimezoneOffset() * 60000));
-    const dateStr = d.toISOString().split('T')[0];
+    const d = new Date(selectedDate);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
     onConfirm({ guests: parseInt(guests), tableType, date: dateStr, time: selectedTime, notes });
   };
 

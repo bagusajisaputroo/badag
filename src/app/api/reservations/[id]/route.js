@@ -3,7 +3,7 @@ import { prisma as prismaClient } from '../../../../lib/prisma';
 
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const reservation = await prismaClient.reservation.findUnique({
       where: { id },
       include: { restaurant: true }
@@ -21,7 +21,7 @@ export async function GET(request, { params }) {
 
 export async function PATCH(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     
     // We only allow updating status, paymentStatus, and cancelReason for now
@@ -40,3 +40,4 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ error: 'Failed to update reservation' }, { status: 500 });
   }
 }
+
