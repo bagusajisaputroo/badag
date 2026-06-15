@@ -1,4 +1,8 @@
+import '@mantine/core/styles.css';
+import '@mantine/dates/styles.css';
+import 'yet-another-react-lightbox/styles.css';
 import '../index.css';
+import { ColorSchemeScript, MantineProvider } from '@mantine/core';
 
 export const metadata = {
   title: 'seato-mockup',
@@ -8,10 +12,15 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <ColorSchemeScript />
+      </head>
       <body>
-        <div id="root">
-          {children}
-        </div>
+        <MantineProvider>
+          <div id="root">
+            {children}
+          </div>
+        </MantineProvider>
       </body>
     </html>
   );
