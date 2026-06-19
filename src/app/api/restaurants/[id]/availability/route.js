@@ -19,7 +19,7 @@ export async function GET(request, { params }) {
       where: { restaurantId }
     });
 
-    // Fetch reservations for this date
+    // Fetch reservations for this date (only active ones)
     const reservations = await prismaClient.reservation.findMany({
       where: {
         restaurantId,
@@ -43,7 +43,11 @@ export async function GET(request, { params }) {
 
       areas.forEach(area => {
         // Count how many reservations exist for this area at this time
-        const bookedCount = reservations.filter(r => r.time === time && r.tableType === area.id).length;
+        // Match by areaId (correct field) — fallback to tableType matching area name for legacy data
+        const bookedCount = reservations.filter(r => 
+          r.time === time && (r.areaId === area.id || r.tableType === area.name)
+        ).length;
+        
         // Assume 1 reservation = 1 table (slot)
         const availableInArea = Math.max(0, area.seatoAllocated - bookedCount);
         

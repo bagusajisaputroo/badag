@@ -31,23 +31,48 @@ export default function App() {
   };
 
   const handleBookingConfirm = async (bookingData) => {
-    // Show toast message for successful booking
-    toast.success('Booking berhasil, silahkan cek email Anda.', {
-      duration: 4000,
-      style: {
-        borderRadius: '10px',
-        background: '#333',
-        color: '#fff',
-      },
-    });
-    
-    setSheetOpen(false);
-    setViewingRestaurant(null); // Close detail screen if open
-    
-    // Optionally redirect to reservasi tab to show upcoming bookings
-    setTimeout(() => {
-      setActiveTab('reservasi');
-    }, 1500);
+    try {
+      const res = await fetch('/api/reservations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurantName: selectedRestoForBooking.name,
+          date: bookingData.date,
+          time: bookingData.time,
+          guests: bookingData.guests,
+          tableType: bookingData.tableType,
+          areaId: bookingData.areaId,
+          notes: bookingData.notes
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || 'Gagal membuat reservasi.');
+        return;
+      }
+
+      // Show toast message for successful booking
+      toast.success('Booking berhasil, silahkan cek email Anda.', {
+        duration: 4000,
+        style: {
+          borderRadius: '10px',
+          background: '#333',
+          color: '#fff',
+        },
+      });
+      
+      setSheetOpen(false);
+      setViewingRestaurant(null); // Close detail screen if open
+      
+      // Redirect to reservasi tab to show upcoming bookings
+      setTimeout(() => {
+        setActiveTab('reservasi');
+      }, 1500);
+    } catch (e) {
+      toast.error('Terjadi kesalahan saat memproses booking.');
+    }
   };
 
   const closeBookingInvoice = () => {

@@ -1,24 +1,80 @@
 import { NextResponse } from 'next/server';
 import { prisma as prismaClient } from '../../../lib/prisma';
 
+async function checkAutoTerminate(reservations) {
+  const now = new Date();
+  const updatedReservations = [];
+
+  for (const res of reservations) {
+    if (res.status === 'Confirmed') {
+      try {
+        let timeStr = res.time;
+        if (timeStr.includes('WIB')) timeStr = timeStr.replace('WIB', '').trim();
+        
+        // Use local timezone assuming WIB (+07:00)
+        const resDate = new Date(`${res.date}T${timeStr}:00+07:00`); 
+        
+        if (!isNaN(resDate.getTime())) {
+          const diffMins = (now.getTime() - resDate.getTime()) / (1000 * 60);
+          const updateDiffMins = (now.getTime() - new Date(res.updatedAt).getTime()) / (1000 * 60);
+
+          // Terminate if > 15 mins late AND hasn't been updated in the last 1 minute (grace period for testing)
+          if (diffMins > 15 && updateDiffMins > 1) {
+            // Auto terminate!
+            const updated = await prismaClient.reservation.update({
+              where: { id: res.id },
+              data: { 
+                status: 'Dibatalkan', 
+                cancelReason: 'Terlambat / No Show (Otomatis)',
+                cancelledBy: 'system'
+              },
+              include: { restaurant: true }
+            });
+            
+            // Free up seatoOccupied on the correct area
+            if (res.areaId) {
+              const area = await prismaClient.restaurantArea.findUnique({ where: { id: res.areaId } });
+              if (area && area.seatoOccupied > 0) {
+                await prismaClient.restaurantArea.update({
+                  where: { id: area.id },
+                  data: { seatoOccupied: area.seatoOccupied - 1 }
+                });
+              }
+            }
+            
+            updatedReservations.push(updated);
+            continue;
+          }
+        }
+      } catch (e) {}
+    }
+    updatedReservations.push(res);
+  }
+  return updatedReservations;
+}
+
 export async function GET(request) {
   try {
     // Optionally we can get userId from query string, but for now we'll just fetch all
     // or fetch for the first user since it's a mockup without real auth
-    const user = await prismaClient.user.findFirst();
+    let user = await prismaClient.user.findFirst();
     if (!user) {
-       return NextResponse.json({ upcoming: [], selesai: [], dibatalkan: [] });
+      user = await prismaClient.user.create({
+        data: { name: 'Bagus', email: 'bagus@example.com', initials: 'BG', location: 'Bandung' }
+      });
     }
 
-    const reservations = await prismaClient.reservation.findMany({
+    let reservations = await prismaClient.reservation.findMany({
       where: { userId: user.id },
       include: { restaurant: true },
       orderBy: { createdAt: 'desc' }
     });
 
+    reservations = await checkAutoTerminate(reservations);
+
     const upcoming = reservations.filter(r => r.status === 'Confirmed' || r.status === 'Menunggu Konfirmasi');
     const selesai = reservations.filter(r => r.status === 'Selesai');
-    const dibatalkan = reservations.filter(r => r.status === 'Dibatalkan');
+    const dibatalkan = reservations.filter(r => r.status === 'Dibatalkan' || r.status === 'Ditolak Restoran');
 
     const formatRes = (r) => ({
       id: r.id,
@@ -28,18 +84,40 @@ export async function GET(request) {
       time: r.time,
       guests: r.guests,
       tableType: r.tableType,
+      areaId: r.areaId,
       location: r.restaurant.city,
       invoiceId: r.invoiceId,
       totalAmount: r.totalAmount,
-      paymentStatus: r.paymentStatus
+      paymentStatus: r.paymentStatus,
+      cancelReason: r.cancelReason,
+      cancelledBy: r.cancelledBy
     });
+
+    // Check if soft ban has expired
+    let isBanned = false;
+    let cancelCount = user.cancelCount;
+    if (user.bannedUntil) {
+      if (new Date() < new Date(user.bannedUntil)) {
+        isBanned = true;
+      } else {
+        // Soft ban expired, reset cancel count optionally
+        await prismaClient.user.update({
+          where: { id: user.id },
+          data: { bannedUntil: null, cancelCount: 0 }
+        });
+        cancelCount = 0;
+      }
+    }
 
     return NextResponse.json({
       upcoming: upcoming.map(formatRes),
       selesai: selesai.map(formatRes),
-      dibatalkan: dibatalkan.map(formatRes)
+      dibatalkan: dibatalkan.map(formatRes),
+      isBanned: isBanned,
+      cancelCount: cancelCount
     });
   } catch (error) {
+    console.error('[GET /api/reservations] Error:', error);
     return NextResponse.json({ error: 'Failed to fetch reservations' }, { status: 500 });
   }
 }
@@ -47,14 +125,28 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const user = await prismaClient.user.findFirst();
+    let user = await prismaClient.user.findFirst();
+    if (!user) {
+      user = await prismaClient.user.create({
+        data: { name: 'Bagus', email: 'bagus@example.com', initials: 'BG', location: 'Bandung' }
+      });
+    }
 
     const restaurant = await prismaClient.restaurant.findFirst({
       where: { name: body.restaurantName }
     });
 
-    if (!restaurant || !user) {
+    if (!restaurant) {
       return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
+    }
+
+    let isBanned = false;
+    if (user.bannedUntil && new Date() < new Date(user.bannedUntil)) {
+      isBanned = true;
+    }
+
+    if (isBanned) {
+      return NextResponse.json({ error: 'Akun Anda di-suspend sementara (1 jam) karena membatalkan 5 kali.' }, { status: 403 });
     }
 
     // Generate Invoice ID
@@ -75,14 +167,22 @@ export async function POST(request) {
         time: body.time || '19:00 WIB',
         guests,
         tableType: body.tableType || 'Meja Indoor',
+        areaId: body.areaId || null,
         invoiceId,
         totalAmount,
         paymentStatus: 'Unpaid'
       }
     });
 
+    // Increment user's statsReservasi
+    await prismaClient.user.update({
+      where: { id: user.id },
+      data: { statsReservasi: user.statsReservasi + 1 }
+    });
+
     return NextResponse.json(newRes, { status: 201 });
   } catch (error) {
+    console.error('[POST /api/reservations] Error:', error);
     return NextResponse.json({ error: 'Failed to create reservation' }, { status: 500 });
   }
 }

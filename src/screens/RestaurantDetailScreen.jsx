@@ -9,6 +9,8 @@ export default function RestaurantDetailScreen({ restaurant, onBack, onBooking }
   const occPct = occ && occ.total > 0 ? Math.round((occ.filled / occ.total) * 100) : 0;
   const statusLabel = occPct >= 90 ? 'Full' : occPct >= 60 ? 'Busy' : 'Available';
   const statusColor = occPct >= 90 ? '#EF4444' : occPct >= 60 ? '#F59E0B' : '#10B981';
+  const statusBorderColor = occPct >= 90 ? 'rgba(239, 68, 68, 0.4)' : occPct >= 60 ? 'rgba(245, 158, 11, 0.4)' : 'rgba(16, 185, 129, 0.4)';
+  const displayPct = occPct >= 90 ? occPct : occPct >= 60 ? occPct : (100 - occPct);
 
   // Calculate true availability from areas data
   let seatoOccupied = 0;
@@ -33,6 +35,9 @@ export default function RestaurantDetailScreen({ restaurant, onBack, onBooking }
 
   const isSeatoFull = seatoAllocated > 0 ? seatoOccupied >= seatoAllocated : true;
   const isWalkinAvailable = walkInOccupied < walkInAllocated;
+  
+  const seatoStatusColor = isSeatoFull ? '#EF4444' : '#10B981';
+  const seatoBorderColor = isSeatoFull ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)';
 
   return (
     <div className="screen-content" style={{ paddingBottom: 0, position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', background: '#F8FAFC' }}>
@@ -96,7 +101,7 @@ export default function RestaurantDetailScreen({ restaurant, onBack, onBooking }
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
           
           {/* Card 1: Current Occupancy */}
-          <div style={{ border: '1px solid rgba(249, 115, 22, 0.4)', borderRadius: '16px', padding: '20px 16px', display: 'flex', alignItems: 'center', gap: '16px', background: 'white' }}>
+          <div style={{ border: `1px solid ${statusBorderColor}`, borderRadius: '16px', padding: '20px 16px', display: 'flex', alignItems: 'center', gap: '16px', background: 'white' }}>
             <div style={{ color: '#1B3461' }}>
               <i className="ti ti-users" style={{ fontSize: '28px' }}></i>
             </div>
@@ -105,13 +110,13 @@ export default function RestaurantDetailScreen({ restaurant, onBack, onBooking }
               <div style={{ fontSize: '10px', color: '#64748B', lineHeight: '1.2' }}>(BERDASARKAN<br/>SELURUH KAPASITAS)</div>
             </div>
             <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ fontSize: '16px', fontWeight: 800, color: '#F97316' }}>{occPct}% {statusLabel}</div>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: statusColor }}>{displayPct}% {statusLabel}</div>
               <div style={{ fontSize: '11px', color: '#64748B' }}>Last updated 5 mins ago</div>
             </div>
           </div>
 
           {/* Card 2: SEATO Reservation Availability */}
-          <div style={{ border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: '16px', padding: '20px 16px', display: 'flex', alignItems: 'center', gap: '16px', background: 'white' }}>
+          <div style={{ border: `1px solid ${seatoBorderColor}`, borderRadius: '16px', padding: '20px 16px', display: 'flex', alignItems: 'center', gap: '16px', background: 'white' }}>
             <div style={{ color: '#1B3461' }}>
               <i className="ti ti-calendar-event" style={{ fontSize: '28px' }}></i>
             </div>
@@ -120,8 +125,8 @@ export default function RestaurantDetailScreen({ restaurant, onBack, onBooking }
               <div style={{ fontSize: '10px', color: '#64748B', lineHeight: '1.2' }}>(KUOTA YANG DAPAT<br/>DIRESERVASI)</div>
             </div>
             <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div style={{ fontSize: '11px', color: '#EF4444', fontWeight: 700 }}>Seato slots for 19:00</div>
-              <div style={{ fontSize: '20px', fontWeight: 800, color: '#EF4444', margin: '2px 0' }}>{isSeatoFull ? 'Full' : 'Available'}</div>
+              <div style={{ fontSize: '11px', color: seatoStatusColor, fontWeight: 700 }}>Seato slots for 19:00</div>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: seatoStatusColor, margin: '2px 0' }}>{isSeatoFull ? 'Full' : 'Available'}</div>
               <div style={{ fontSize: '11px', color: '#1B3461', fontWeight: 700 }}>
                 {isWalkinAvailable ? 'Walk-in / Call available' : 'Fully Booked'}
               </div>

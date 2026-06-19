@@ -108,8 +108,8 @@ export default function MyRestoProfile() {
           }
         } else if (type === 'walkin') {
           const newVal = a.walkInOccupied + delta;
-          const maxWalkIn = a.total - a.seatoAllocated;
-          if (newVal >= 0 && newVal <= maxWalkIn && currentOccupied + delta <= a.total) {
+          // allow overflowing into SEATO allocated quota
+          if (newVal >= 0 && currentOccupied + delta <= a.total) {
             newArea.walkInOccupied = newVal;
           }
         }
@@ -366,9 +366,9 @@ export default function MyRestoProfile() {
                       return (
                         <div key={i} style={{ 
                           aspectRatio: '1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          background: isSeato ? '#DBEAFE' : isWalkIn ? '#FEF3C7' : '#F1F5F9',
-                          border: `1px solid ${isSeato ? '#93C5FD' : isWalkIn ? (isOverflowWalkin ? '#F59E0B' : '#FDE68A') : '#E2E8F0'}`,
-                          color: isSeato ? '#1D4ED8' : isWalkIn ? '#B45309' : '#94A3B8',
+                          background: isSeato ? '#DBEAFE' : isWalkIn ? (isOverflowWalkin ? '#F1F5F9' : '#FEF3C7') : '#F1F5F9',
+                          border: `1px solid ${isSeato ? '#93C5FD' : isWalkIn ? (isOverflowWalkin ? '#94A3B8' : '#FDE68A') : '#E2E8F0'}`,
+                          color: isSeato ? '#1D4ED8' : isWalkIn ? (isOverflowWalkin ? '#475569' : '#B45309') : '#94A3B8',
                           transition: 'all 0.2s ease',
                           boxShadow: !isEmpty ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
                         }}>
@@ -394,8 +394,8 @@ export default function MyRestoProfile() {
                       </button>
                       <button 
                         onClick={() => updateArea(area.id, 'walkin', 1)}
-                        disabled={areaOccupied >= area.total || area.walkInOccupied >= areaWalkInQuota}
-                        style={{ flex: 1, border: 'none', borderRadius: '8px', padding: '8px', fontSize: '11px', fontWeight: 700, background: '#F59E0B', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', opacity: (areaOccupied >= area.total || area.walkInOccupied >= areaWalkInQuota) ? 0.4 : 1 }}
+                        disabled={areaOccupied >= area.total}
+                        style={{ flex: 1, border: 'none', borderRadius: '8px', padding: '8px', fontSize: '11px', fontWeight: 700, background: '#F59E0B', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', opacity: (areaOccupied >= area.total) ? 0.4 : 1 }}
                       >
                         <IconPlus size={14} /> Walk-in
                       </button>
@@ -431,6 +431,9 @@ export default function MyRestoProfile() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#64748B' }}>
               <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#DBEAFE' }} /> SEATO
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#64748B' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#F1F5F9', border: '1px solid #94A3B8' }} /> SEATO dioverride ke Walk-in
             </div>
           </div>
         </div>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 
-export default function CancelModal({ onClose, onConfirm }) {
+export default function CancelModal({ onClose, onConfirm, cancelCount = 0 }) {
   const [reason, setReason] = useState('Berubah Pikiran');
+  const remaining = 5 - cancelCount;
 
   const reasons = [
     'Berubah Pikiran',
@@ -22,6 +23,13 @@ export default function CancelModal({ onClose, onConfirm }) {
         <p className="text-muted" style={{ marginBottom: '20px' }}>
           Apakah Anda yakin ingin membatalkan reservasi ini? Mohon beritahu kami alasannya:
         </p>
+
+        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '12px', marginBottom: '20px' }}>
+          <p style={{ fontSize: '12px', color: '#B91C1C', margin: 0, fontWeight: 600 }}>
+            <i className="ti ti-alert-triangle" style={{ marginRight: '6px' }}></i>
+            Perhatian: Anda memiliki sisa {remaining}x kuota pembatalan. Jika mencapai batas (5x), akun Anda akan terkena soft ban dan tidak dapat membuat reservasi baru.
+          </p>
+        </div>
 
         <div className="flex-col gap-3" style={{ marginBottom: '32px' }}>
           {reasons.map(r => (

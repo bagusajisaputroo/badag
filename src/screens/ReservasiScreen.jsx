@@ -12,12 +12,15 @@ export default function ReservasiScreen({ navigateToExplore }) {
   const [cancelTargetId, setCancelTargetId] = useState(null);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
 
+  const [userStats, setUserStats] = useState({ isBanned: false, cancelCount: 0 });
+
   const fetchReservations = () => {
     fetch('/api/reservations')
       .then(res => res.json())
       .then(data => {
         if (data && Array.isArray(data.upcoming)) {
           setReservations(data);
+          setUserStats({ isBanned: data.isBanned || false, cancelCount: data.cancelCount || 0 });
         }
       });
   };
@@ -36,7 +39,7 @@ export default function ReservasiScreen({ navigateToExplore }) {
       await fetch(`/api/reservations/${cancelTargetId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Dibatalkan', cancelReason: reason })
+        body: JSON.stringify({ status: 'Dibatalkan', cancelReason: reason, cancelledBy: 'user' })
       });
       setIsCancelOpen(false);
       setCancelTargetId(null);
@@ -108,14 +111,22 @@ export default function ReservasiScreen({ navigateToExplore }) {
         {resTab === 'dibatalkan' && (
           <div className="flex-col gap-4">
             {reservations.dibatalkan.map(res => (
-              <div key={res.id} className="card" style={{ borderLeft: '3px solid #E11D48', opacity: 0.8 }}>
+              <div key={res.id} className="card" style={{ borderLeft: `3px solid ${res.status === 'Ditolak Restoran' ? '#F59E0B' : '#E11D48'}`, opacity: 0.8 }}>
                 <div className="flex-row justify-between" style={{ marginBottom: '12px' }}>
                   <h2 className="text-navy">{res.restaurantName}</h2>
-                  <span className="chip chip-cancelled">{res.status}</span>
+                  <span className="chip" style={{ 
+                    background: res.status === 'Ditolak Restoran' ? '#FEF3C7' : '#FEE2E2', 
+                    color: res.status === 'Ditolak Restoran' ? '#92400E' : '#BE123C' 
+                  }}>{res.status}</span>
                 </div>
                 <div className="flex-col gap-2">
                   <p className="text-muted flex-row gap-2"><i className="ti ti-calendar"></i> {res.date} • {res.time}</p>
-                  {res.cancelReason && <p className="caption text-muted flex-row gap-2" style={{ color: '#E11D48' }}><i className="ti ti-info-circle"></i> Alasan: {res.cancelReason}</p>}
+                  {res.cancelReason && <p className="caption text-muted flex-row gap-2" style={{ color: res.status === 'Ditolak Restoran' ? '#92400E' : '#E11D48' }}><i className="ti ti-info-circle"></i> Alasan: {res.cancelReason}</p>}
+                  {res.cancelledBy && (
+                    <p className="caption text-muted flex-row gap-2" style={{ color: '#64748B' }}>
+                      <i className="ti ti-user"></i> Dibatalkan oleh: {res.cancelledBy === 'user' ? 'Anda' : res.cancelledBy === 'admin' ? 'Restoran' : 'Sistem (Otomatis)'}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
@@ -132,7 +143,8 @@ export default function ReservasiScreen({ navigateToExplore }) {
       {isCancelOpen && (
         <CancelModal 
           onClose={() => setIsCancelOpen(false)} 
-          onConfirm={handleCancelConfirm} 
+          onConfirm={handleCancelConfirm}
+          cancelCount={userStats.cancelCount}
         />
       )}
     </div>

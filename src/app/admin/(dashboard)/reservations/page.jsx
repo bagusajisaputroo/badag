@@ -1,12 +1,54 @@
+"use client";
 import React from 'react';
-import { prisma } from '../../../../lib/prisma';
-import { IconSearch, IconFilter, IconCheck, IconX, IconCalendarEvent } from '@tabler/icons-react';
+import { IconSearch, IconFilter, IconCheck, IconX, IconCalendarEvent, IconClockX, IconCircleCheck } from '@tabler/icons-react';
 
-export default async function AdminReservations() {
-  const reservations = await prisma.reservation.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: { restaurant: true, user: true }
-  });
+export default function AdminReservations() {
+  const [reservations, setReservations] = React.useState([]);
+
+  React.useEffect(() => {
+    fetchReservations();
+  }, []);
+
+  const fetchReservations = () => {
+    // Filter by logged-in restaurant
+    const restaurantId = localStorage.getItem('partnerRestoId');
+    const url = restaurantId 
+      ? `/api/admin/reservations?restaurantId=${restaurantId}` 
+      : '/api/admin/reservations';
+
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setReservations(data);
+      })
+      .catch(console.error);
+  };
+
+  const handleAction = async (id, status, cancelledBy = null) => {
+    try {
+      const body = { status };
+      if (cancelledBy) body.cancelledBy = cancelledBy;
+      
+      await fetch(`/api/reservations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      fetchReservations(); // Refresh
+    } catch(e) {
+      console.error(e);
+    }
+  };
+
+  const getStatusChipClass = (status) => {
+    switch (status) {
+      case 'Confirmed': return 'chip-confirmed';
+      case 'Selesai': return 'chip-confirmed';
+      case 'Dibatalkan': return 'chip-cancelled';
+      case 'Ditolak Restoran': return 'chip-cancelled';
+      default: return 'chip-waiting';
+    }
+  };
 
   return (
     <div className="screen-content" style={{ background: '#F8FAFC' }}>
@@ -33,11 +75,7 @@ export default async function AdminReservations() {
           <div key={res.id} style={{ background: 'white', borderRadius: '16px', padding: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
               <div>
-                <span className={`chip ${
-                  res.status === 'Confirmed' ? 'chip-confirmed' :
-                  res.status === 'Selesai' ? 'chip-confirmed' :
-                  res.status === 'Dibatalkan' ? 'chip-cancelled' : 'chip-waiting'
-                }`}>
+                <span className={`chip ${getStatusChipClass(res.status)}`}>
                   {res.status}
                 </span>
                 <div style={{ fontSize: '11px', color: '#64748B', marginTop: '6px' }}>#{res.id.substring(0, 8)}</div>
@@ -55,18 +93,42 @@ export default async function AdminReservations() {
                 </div>
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>{res.user?.name || 'Guest'}</div>
-                  <div style={{ fontSize: '12px', color: '#64748B' }}>{res.date} • {res.time} • {res.guests} Pax</div>
+                  <div style={{ fontSize: '12px', color: '#64748B' }}>{res.date} • {res.time} • {res.guests} Pax • {res.tableType}</div>
                 </div>
               </div>
+              
+              {/* Show cancel reason if exists */}
+              {res.cancelReason && (
+                <div style={{ fontSize: '12px', color: '#EF4444', background: '#FEF2F2', padding: '8px 12px', borderRadius: '8px', marginTop: '4px' }}>
+                  <strong>Alasan:</strong> {res.cancelReason}
+                  {res.cancelledBy && (
+                    <span style={{ color: '#64748B', marginLeft: '8px' }}>
+                      (oleh {res.cancelledBy === 'user' ? 'User' : res.cancelledBy === 'admin' ? 'Admin' : 'Sistem'})
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '8px', borderTop: '1px dashed #E2E8F0', paddingTop: '16px' }}>
-              <button style={{ flex: 1, padding: '10px', background: '#DCFCE7', color: '#16A34A', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                <IconCheck size={16} /> Approve
-              </button>
-              <button style={{ flex: 1, padding: '10px', background: '#FEE2E2', color: '#DC2626', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                <IconX size={16} /> Reject
-              </button>
+              {/* Menunggu Konfirmasi: Approve + Reject */}
+              {res.status === 'Menunggu Konfirmasi' && (
+                <>
+                  <button onClick={() => handleAction(res.id, 'Confirmed')} style={{ flex: 1, padding: '10px', background: '#DCFCE7', color: '#16A34A', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer' }}>
+                    <IconCheck size={16} /> Approve
+                  </button>
+                  <button onClick={() => handleAction(res.id, 'Ditolak Restoran', 'admin')} style={{ flex: 1, padding: '10px', background: '#FEF3C7', color: '#92400E', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer' }}>
+                    <IconX size={16} /> Reject
+                  </button>
+                </>
+              )}
+              
+              {/* Confirmed: Selesaikan button */}
+              {res.status === 'Confirmed' && (
+                <button onClick={() => handleAction(res.id, 'Selesai')} style={{ flex: 1, padding: '10px', background: '#DBEAFE', color: '#1D4ED8', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer' }}>
+                  <IconCircleCheck size={16} /> Selesaikan
+                </button>
+              )}
             </div>
           </div>
         ))}

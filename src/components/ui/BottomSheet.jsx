@@ -4,7 +4,8 @@ export default function BottomSheet({ isOpen, onClose, restaurant, onConfirm }) 
   const [guests, setGuests] = useState('2');
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
-  const [tableType, setTableType] = useState('');
+  const [tableType, setTableType] = useState('');     // area name (display)
+  const [selectedAreaId, setSelectedAreaId] = useState(''); // area UUID (for DB)
   const [availabilityData, setAvailabilityData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -44,6 +45,7 @@ export default function BottomSheet({ isOpen, onClose, restaurant, onConfirm }) 
       setCurrentY(0);
       setGuests('2');
       setTableType('');
+      setSelectedAreaId('');
       setSelectedTime('');
       setErrorMsg('');
       if (!selectedDate) setSelectedDate(dateOptions[0].dateStr);
@@ -86,7 +88,7 @@ export default function BottomSheet({ isOpen, onClose, restaurant, onConfirm }) 
       alert('Mohon pilih Tanggal, Jam, dan Area.');
       return;
     }
-    onConfirm({ guests: parseInt(guests), tableType, date: selectedDate, time: selectedTime, notes: '' });
+    onConfirm({ guests: parseInt(guests), tableType, areaId: selectedAreaId, date: selectedDate, time: selectedTime, notes: '' });
   };
 
   if (!isOpen) return null;
@@ -127,6 +129,7 @@ export default function BottomSheet({ isOpen, onClose, restaurant, onConfirm }) 
                     setSelectedDate(opt.dateStr);
                     setSelectedTime('');
                     setTableType('');
+                    setSelectedAreaId('');
                   }}
                   style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -183,6 +186,7 @@ export default function BottomSheet({ isOpen, onClose, restaurant, onConfirm }) 
                       if (!slot.isFull) {
                         setSelectedTime(slot.time);
                         setTableType(''); // Reset area on time change
+                        setSelectedAreaId('');
                       }
                     }}
                     style={{ 
@@ -215,12 +219,12 @@ export default function BottomSheet({ isOpen, onClose, restaurant, onConfirm }) 
                     const slot = availabilityData.find(s => s.time === selectedTime);
                     if (!slot) return null;
                     
-                    return Object.values(slot.areas).map(area => {
+                    return Object.entries(slot.areas).map(([areaId, area]) => {
                       const isFull = area.available === 0;
                       return (
                         <div 
-                          key={area.name}
-                          onClick={() => !isFull && setTableType(area.name)}
+                          key={areaId}
+                          onClick={() => { if (!isFull) { setTableType(area.name); setSelectedAreaId(areaId); } }}
                           style={{
                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                             padding: '16px', borderRadius: '12px',
