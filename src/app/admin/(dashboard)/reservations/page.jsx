@@ -97,6 +97,13 @@ export default function AdminReservations() {
                 </div>
               </div>
               
+              {/* Show promo if exists */}
+              {res.promo && (
+                <div style={{ fontSize: '12px', color: '#0EA5A0', background: '#F0FDFA', padding: '8px 12px', borderRadius: '8px', marginTop: '4px' }}>
+                  <strong>Promo Digunakan:</strong> {res.promo.code} ({res.promo.title})
+                </div>
+              )}
+              
               {/* Show cancel reason if exists */}
               {res.cancelReason && (
                 <div style={{ fontSize: '12px', color: '#EF4444', background: '#FEF2F2', padding: '8px 12px', borderRadius: '8px', marginTop: '4px' }}>

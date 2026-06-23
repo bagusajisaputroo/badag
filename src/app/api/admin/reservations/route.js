@@ -25,7 +25,7 @@ async function checkAutoTerminate(reservations) {
                 cancelReason: 'Terlambat / No Show (Otomatis)',
                 cancelledBy: 'system'
               },
-              include: { restaurant: true, user: true }
+              include: { restaurant: true, user: true, promo: true }
             });
             
             // Free up seatoOccupied on the correct area using areaId
@@ -64,7 +64,7 @@ export async function GET(request) {
     let reservations = await prismaClient.reservation.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
-      include: { restaurant: true, user: true }
+      include: { restaurant: true, user: true, promo: true }
     });
     
     reservations = await checkAutoTerminate(reservations);

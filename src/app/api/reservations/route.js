@@ -66,7 +66,7 @@ export async function GET(request) {
 
     let reservations = await prismaClient.reservation.findMany({
       where: { userId: user.id },
-      include: { restaurant: true },
+      include: { restaurant: true, promo: true },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -90,7 +90,8 @@ export async function GET(request) {
       totalAmount: r.totalAmount,
       paymentStatus: r.paymentStatus,
       cancelReason: r.cancelReason,
-      cancelledBy: r.cancelledBy
+      cancelledBy: r.cancelledBy,
+      promo: r.promo ? { code: r.promo.code, imageUrl: r.promo.imageUrl, title: r.promo.title } : null
     });
 
     // Check if soft ban has expired
@@ -170,7 +171,8 @@ export async function POST(request) {
         areaId: body.areaId || null,
         invoiceId,
         totalAmount,
-        paymentStatus: 'Unpaid'
+        paymentStatus: 'Unpaid',
+        promoId: body.promoId || null
       }
     });
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import RestaurantCard from '../components/ui/RestaurantCard';
 
-export default function HomeScreen({ onSearch, onSelectRestaurant }) {
+export default function HomeScreen({ onSearch, onSelectRestaurant, onSelectPromo }) {
   const [homeCat, setHomeCat] = useState('Semua');
   const [searchQuery, setSearchQuery] = useState('');
   const [restaurants, setRestaurants] = useState([]);
@@ -92,8 +92,14 @@ export default function HomeScreen({ onSearch, onSelectRestaurant }) {
             <div 
               key={promo.id} 
               className="card promo-banner" 
-              style={{ backgroundImage: `${promo.color}, url(${promo.imageUrl})` }}
+              style={{ backgroundImage: `${promo.color}, url(${promo.imageUrl})`, position: 'relative', cursor: 'pointer' }}
+              onClick={() => onSelectPromo && onSelectPromo(promo)}
             >
+              {promo.type === 'COLLAB' && (
+                <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '8px', fontSize: '10px', color: 'white', fontWeight: 'bold' }}>
+                  PROMO KOLABORASI
+                </div>
+              )}
               <div className="promo-content">
                 <h2 style={{fontSize: '18px'}}>{promo.title}</h2>
                 <p style={{opacity: 0.9}}>{promo.subtitle}</p>

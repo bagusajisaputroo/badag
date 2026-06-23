@@ -7,7 +7,7 @@ export default async function PartnerDashboard() {
   const partnerRestoId = '1'; // In a real app, this comes from session/auth
 
   const totalReservations = await prisma.reservation.count();
-  const totalPromos = await prisma.promoBanner.count();
+  const totalPromos = await prisma.promo.count();
   
   // Fake revenue metric for demo
   const revenueToday = 2450000;

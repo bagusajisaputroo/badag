@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 
-export default function BottomSheet({ isOpen, onClose, restaurant, onConfirm }) {
+export default function BottomSheet({ isOpen, onClose, restaurant, onConfirm, preSelectedPromoId = '' }) {
   const [guests, setGuests] = useState('2');
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
@@ -9,6 +9,9 @@ export default function BottomSheet({ isOpen, onClose, restaurant, onConfirm }) 
   const [availabilityData, setAvailabilityData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  
+  const [promos, setPromos] = useState([]);
+  const [selectedPromoId, setSelectedPromoId] = useState('');
 
   const [startY, setStartY] = useState(null);
   const [currentY, setCurrentY] = useState(0);
@@ -48,9 +51,17 @@ export default function BottomSheet({ isOpen, onClose, restaurant, onConfirm }) 
       setSelectedAreaId('');
       setSelectedTime('');
       setErrorMsg('');
+      setSelectedPromoId('');
       if (!selectedDate) setSelectedDate(dateOptions[0].dateStr);
     }
   }, [isOpen, dateOptions]);
+
+  // Auto-select promo from promo detail screen
+  useEffect(() => {
+    if (isOpen && preSelectedPromoId) {
+      setSelectedPromoId(preSelectedPromoId);
+    }
+  }, [isOpen, preSelectedPromoId]);
 
   useEffect(() => {
     if (isOpen && restaurant && restaurant.id && selectedDate) {
@@ -74,6 +85,17 @@ export default function BottomSheet({ isOpen, onClose, restaurant, onConfirm }) 
       if (!restaurant) setErrorMsg('No restaurant data');
       else if (!restaurant.id) setErrorMsg('No restaurant ID');
     }
+    
+    if (isOpen && restaurant && restaurant.id) {
+      fetch(`/api/promos?restaurantId=${restaurant.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setPromos(data.filter(p => p.type === 'COLLAB'));
+          }
+        })
+        .catch(console.error);
+    }
   }, [isOpen, restaurant, selectedDate]);
 
   const handleClose = () => {
@@ -88,7 +110,7 @@ export default function BottomSheet({ isOpen, onClose, restaurant, onConfirm }) 
       alert('Mohon pilih Tanggal, Jam, dan Area.');
       return;
     }
-    onConfirm({ guests: parseInt(guests), tableType, areaId: selectedAreaId, date: selectedDate, time: selectedTime, notes: '' });
+    onConfirm({ guests: parseInt(guests), tableType, areaId: selectedAreaId, date: selectedDate, time: selectedTime, notes: '', promoId: selectedPromoId });
   };
 
   if (!isOpen) return null;
@@ -252,6 +274,32 @@ export default function BottomSheet({ isOpen, onClose, restaurant, onConfirm }) 
                       );
                     });
                   })()}
+                </div>
+              </div>
+            )}
+            
+            {/* Promo Selection (Appears if Promos exist) */}
+            {promos.length > 0 && selectedTime && (
+              <div style={{ animation: 'fadeIn 0.3s ease', marginTop: '24px' }}>
+                <h2 className="text-navy" style={{ fontSize: '15px', marginBottom: '12px' }}>Pilih Promo Kolaborasi (Opsional)</h2>
+                <div style={{ marginBottom: '32px', position: 'relative' }}>
+                  <select 
+                    value={selectedPromoId} 
+                    onChange={(e) => setSelectedPromoId(e.target.value)}
+                    style={{
+                      appearance: 'none',
+                      width: '100%', padding: '16px 16px', borderRadius: '12px',
+                      border: '1px solid #E2E8F0', background: 'white',
+                      color: '#1B3461', fontSize: '15px', fontWeight: 600,
+                      outline: 'none', cursor: 'pointer'
+                    }}
+                  >
+                    <option value="">-- Tidak menggunakan promo --</option>
+                    {promos.map(p => (
+                      <option key={p.id} value={p.id}>{p.title}</option>
+                    ))}
+                  </select>
+                  <i className="ti ti-chevron-down" style={{ position: 'absolute', right: '16px', top: '16px', color: '#1B3461', pointerEvents: 'none' }}></i>
                 </div>
               </div>
             )}

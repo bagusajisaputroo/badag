@@ -4,6 +4,7 @@ const prisma = new PrismaClient();
 async function main() {
   // 1. Delete all existing restaurants (and cascaded data if any)
   await prisma.reservation.deleteMany();
+  await prisma.promo.deleteMany();
   await prisma.restaurantArea.deleteMany();
   await prisma.restaurant.deleteMany();
 
@@ -80,6 +81,35 @@ async function main() {
       }
     }
   });
+
+  // Get restaurants for relation
+  const sotoMenara = await prisma.restaurant.findFirst({ where: { name: 'Soto Kudus Menara' }});
+  
+  // 5. Create Global Promo
+  await prisma.promo.create({
+    data: {
+      title: 'Diskon Akhir Pekan',
+      subtitle: 'Nikmati diskon s.d 50% untuk reservasi akhir pekan ini!',
+      imageUrl: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+      color: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+      type: 'GLOBAL'
+    }
+  });
+
+  // 6. Create Collab Promo for Soto Kudus Menara
+  if (sotoMenara) {
+    await prisma.promo.create({
+      data: {
+        title: 'Gratis Es Teh Manis',
+        subtitle: 'Khusus reservasi via Seato. Tunjukkan kode promo saat kedatangan.',
+        imageUrl: 'https://images.unsplash.com/photo-1499638673689-79a0b5115d87?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+        color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+        type: 'COLLAB',
+        code: 'SEATO-SOTO',
+        restaurantId: sotoMenara.id
+      }
+    });
+  }
 
   console.log('Seeding completed successfully!');
 }

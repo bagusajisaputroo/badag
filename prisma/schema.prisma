@@ -23,14 +23,19 @@ model User {
   updatedAt      DateTime      @updatedAt
 }
 
-model PromoBanner {
-  id        String   @id @default(uuid())
-  title     String
-  subtitle  String
-  imageUrl  String
-  color     String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Promo {
+  id           String      @id @default(uuid())
+  title        String
+  subtitle     String
+  imageUrl     String
+  color        String
+  type         String      // "GLOBAL" | "COLLAB"
+  code         String?
+  restaurantId String?
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id])
+  reservations Reservation[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }
 
 model Restaurant {
@@ -50,6 +55,7 @@ model Restaurant {
   loginEmail    String?       @unique
   loginPassword String?
   reservations  Reservation[]
+  promos        Promo[]
   areas         RestaurantArea[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -81,6 +87,8 @@ model Reservation {
   paymentStatus  String?    @default("Unpaid")
   cancelReason   String?
   cancelledBy    String?    // "user" | "admin" | "system"
+  promoId        String?
+  promo          Promo?     @relation(fields: [promoId], references: [id])
   user           User       @relation(fields: [userId], references: [id])
   restaurant     Restaurant @relation(fields: [restaurantId], references: [id])
   createdAt      DateTime   @default(now())

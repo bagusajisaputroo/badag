@@ -37,6 +37,18 @@ export default function InvoiceModal({ invoice, onClose }) {
             <span className="text-muted" style={{ fontSize: '13px' }}>Status Pembayaran</span>
             <span style={{ fontWeight: 600, fontSize: '13px', color: invoice.paymentStatus === 'Paid' ? '#0EA5A0' : '#F59E0B' }}>{invoice.paymentStatus || 'Unpaid'}</span>
           </div>
+          {invoice.promo && (
+            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px dashed #CBD5E1' }}>
+              <span className="text-muted" style={{ fontSize: '13px', display: 'block', marginBottom: '8px' }}>Promo Digunakan</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'white', padding: '8px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                <img src={invoice.promo.imageUrl} alt="Promo" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px' }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#1B3461', marginBottom: '2px' }}>{invoice.promo.title}</div>
+                  <div style={{ fontSize: '11px', color: '#64748B' }}>Kode: <strong style={{ color: '#0EA5A0' }}>{invoice.promo.code || 'TERAPLIKASI'}</strong></div>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="flex-row justify-between" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px dashed #CBD5E1' }}>
             <span className="text-navy" style={{ fontWeight: 700 }}>Total Tagihan</span>
             <span className="text-navy" style={{ fontWeight: 700, fontSize: '18px' }}>Rp {invoice.totalAmount ? invoice.totalAmount.toLocaleString('id-ID') : '0'}</span>
