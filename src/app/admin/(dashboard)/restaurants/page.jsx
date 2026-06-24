@@ -12,6 +12,19 @@ export default function MyRestoProfile() {
   const [areas, setAreas] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Fetch fresh area data from server (single source of truth)
+  const fetchAreas = async (rId) => {
+    try {
+      const res = await fetch(`/api/restaurants/${rId}/areas`);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.areas)) {
+        setAreas(data.areas);
+      }
+    } catch (err) {
+      console.error('Failed to fetch areas:', err);
+    }
+  };
+
   // Fetch initial data
   useEffect(() => {
     const partnerId = localStorage.getItem('partnerRestoId');
@@ -32,29 +45,53 @@ export default function MyRestoProfile() {
 
           setRestaurantId(resto.id);
           setRestaurantName(resto.name);
+          // Always use areas from DB — no hardcoded fallback
           if (resto.areas && resto.areas.length > 0) {
             setAreas(resto.areas);
-          } else {
-            // Default initialization if no areas exist yet in DB
-            const initAreas = [
-              { id: '1', name: 'Indoor Area', total: 12, seatoAllocated: 4, seatoOccupied: 0, walkInOccupied: 0 },
-              { id: '2', name: 'Outdoor Area', total: 8, seatoAllocated: 2, seatoOccupied: 0, walkInOccupied: 0 }
-            ];
-            setAreas(initAreas);
-            // Optionally sync defaults to backend immediately
-            syncToBackend(resto.id, initAreas);
           }
+          // If no areas exist, areas stays [] and user can add via "Kelola Area"
         }
         setIsLoading(false);
       });
   }, []);
 
-  const syncToBackend = (rId, areasData) => {
-    fetch(`/api/restaurants/${rId}/areas`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ areas: areasData })
-    }).catch(console.error);
+  // Sync area config (quota editing) to backend and update state from response
+  const syncAreasConfig = async (rId, areasData) => {
+    try {
+      const res = await fetch(`/api/restaurants/${rId}/areas`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ areas: areasData })
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.areas)) {
+        setAreas(data.areas); // Sync state from server response
+      }
+    } catch (err) {
+      console.error('Failed to sync areas config:', err);
+    }
+  };
+
+  // Atomic update: PATCH a single area's seatoOccupied or walkInOccupied
+  const patchAreaOccupancy = async (rId, areaId, field, delta) => {
+    try {
+      const res = await fetch(`/api/restaurants/${rId}/areas`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ areaId, field, delta })
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.areas)) {
+        setAreas(data.areas); // Sync entire areas state from server
+      } else {
+        // If server rejected, re-fetch to correct frontend state
+        await fetchAreas(rId);
+      }
+    } catch (err) {
+      console.error('Failed to patch area occupancy:', err);
+      // Re-fetch to ensure consistency
+      await fetchAreas(rId);
+    }
   };
 
   // Edit Quota State
@@ -94,6 +131,7 @@ export default function MyRestoProfile() {
 
   // --- HANDLERS FOR AREAS ---
   const updateArea = (areaId, type, delta) => {
+    // Optimistic update for instant UI feedback
     setAreas(prevAreas => {
       const newAreas = prevAreas.map(a => {
         if (a.id !== areaId) return a;
@@ -108,7 +146,6 @@ export default function MyRestoProfile() {
           }
         } else if (type === 'walkin') {
           const newVal = a.walkInOccupied + delta;
-          // allow overflowing into SEATO allocated quota
           if (newVal >= 0 && currentOccupied + delta <= a.total) {
             newArea.walkInOccupied = newVal;
           }
@@ -120,13 +157,14 @@ export default function MyRestoProfile() {
 
         return newArea;
       });
-
-      if (restaurantId) {
-        syncToBackend(restaurantId, newAreas);
-      }
-      
       return newAreas;
     });
+
+    // Atomic PATCH to server — server response will be the true state
+    if (restaurantId) {
+      const field = type === 'seato' ? 'seatoOccupied' : 'walkInOccupied';
+      patchAreaOccupancy(restaurantId, areaId, field, delta);
+    }
   };
 
   // --- EDIT FORM HANDLERS ---
@@ -155,7 +193,7 @@ export default function MyRestoProfile() {
   };
 
   const handleAddEditArea = () => {
-    const newId = Date.now().toString();
+    const newId = crypto.randomUUID();
     setEditAreas([...editAreas, { id: newId, name: 'Area Baru', total: 5, seatoAllocated: 2, seatoOccupied: 0, walkInOccupied: 0 }]);
   };
 
@@ -163,7 +201,7 @@ export default function MyRestoProfile() {
     setEditAreas(prev => prev.filter(a => a.id !== id));
   };
 
-  const handleSaveQuota = () => {
+  const handleSaveQuota = async () => {
     // Merge new areas with existing occupancy if id matches, otherwise start at 0
     const finalAreas = editAreas.map(ea => {
       const existing = areas.find(a => a.id === ea.id);
@@ -175,11 +213,13 @@ export default function MyRestoProfile() {
       }
       return ea;
     });
-    setAreas(finalAreas);
     setIsEditingQuota(false);
     
     if (restaurantId) {
-      syncToBackend(restaurantId, finalAreas);
+      // Await server response and use that as the source of truth
+      await syncAreasConfig(restaurantId, finalAreas);
+    } else {
+      setAreas(finalAreas);
     }
   };
 
