@@ -3,20 +3,22 @@ import React from 'react';
 export default function BottomNav({ activeTab, setActiveTab }) {
   const tabs = [
     { id: 'home', icon: 'ti-home', label: 'Home' },
-    { id: 'explore', icon: 'ti-compass', label: 'Explore' },
+    { id: 'promo', icon: 'ti-ticket', label: 'Promo' },
+    { id: 'community', icon: 'ti-users', label: 'Community' },
     { id: 'reservasi', icon: 'ti-calendar-event', label: 'Reservasi' },
     { id: 'akun', icon: 'ti-user', label: 'Akun' }
   ];
 
   return (
-    <div className="bottom-nav">
+    <div className="bottom-nav-modern">
       {tabs.map((tab) => (
         <div 
           key={tab.id}
-          className={`nav-item ${activeTab === tab.id ? 'active' : ''}`} 
+          className={`bottom-nav-item ${activeTab === tab.id ? 'active' : ''}`} 
           onClick={() => setActiveTab(tab.id)}
         >
           <i className={`ti ${tab.icon}`}></i>
+          <span className="bottom-nav-label">{tab.label}</span>
         </div>
       ))}
     </div>

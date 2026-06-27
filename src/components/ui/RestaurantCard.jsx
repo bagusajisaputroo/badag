@@ -44,24 +44,38 @@ export default function RestaurantCard({ variant = 'horizontal', data, onAction 
     );
   }
 
-  // default horizontal
+  // premium organic horizontal
   return (
-    <div className="card resto-card-h" onClick={() => onAction && onAction(data)}>
+    <div className="resto-card-premium" onClick={() => onAction && onAction(data)}>
       <div 
-        className="img-placeholder" 
-        style={{ width: '80px', height: '80px', backgroundImage: `url(${data.imageUrl})` }}
+        className="resto-img-premium" 
+        style={{ backgroundImage: data.imageUrl ? `url(${data.imageUrl})` : 'none' }}
       >
-      </div>
-      <div className="flex-col justify-between" style={{ flex: 1 }}>
-        <div>
-          <h2 className="text-navy">{data.name}</h2>
-          <p className="caption">{data.city} • {data.type}</p>
+        {!data.imageUrl && <i className="ti ti-photo-off text-muted" style={{fontSize: '32px'}}></i>}
+        <div className="resto-rating-badge">
+          <i className="ti ti-star-filled"></i> {data.rating}
         </div>
-        <div className="flex-row justify-between" style={{ alignItems: 'flex-end' }}>
-          <div className="flex-row gap-2">
-            <span className="text-navy" style={{ fontWeight: 600, fontSize: '11px' }}>★ {data.rating}</span>
-            <span className="caption">• {data.distance}</span>
-          </div>
+      </div>
+      <div className="resto-info-premium">
+        <div className="flex-row justify-between items-start">
+          <h2 className="resto-name-premium">{data.name}</h2>
+          {data.calculatedDistance != null && (
+            <span className="resto-distance-premium">{data.calculatedDistance.toFixed(1)} km</span>
+          )}
+        </div>
+        <p className="resto-type-premium">{data.city} • {data.type}</p>
+        
+        {/* Render tags elegantly */}
+        <div className="resto-tags-premium">
+          {data.tags && (() => {
+            let parsedTags = [];
+            try {
+              parsedTags = typeof data.tags === 'string' ? JSON.parse(data.tags) : data.tags;
+            } catch(e) {}
+            return parsedTags.slice(0, 2).map((tag, idx) => (
+              <span key={idx} className="tag-pill-premium">{tag}</span>
+            ));
+          })()}
         </div>
       </div>
     </div>

@@ -3,22 +3,27 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
   id             String        @id @default(uuid())
   name           String
   email          String        @unique
+  password       String?
   initials       String?
   location       String?
+  latitude       Float?
+  longitude      Float?
   statsReservasi Int           @default(0)
   statsUlasan    Int           @default(0)
   statsFavorit   Int           @default(0)
   cancelCount    Int           @default(0)
   bannedUntil    DateTime?
   reservations   Reservation[]
+  reviews        Review[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 }
@@ -44,6 +49,8 @@ model Restaurant {
   address       String
   city          String
   distance      String?
+  latitude      Float?
+  longitude     Float?
   type          String
   rating        Float         @default(0.0)
   reviewsCount  Int           @default(0)
@@ -52,9 +59,12 @@ model Restaurant {
   tags          String        // Store as JSON string or comma-separated
   isTrending    Boolean       @default(false)
   isRecommended Boolean       @default(false)
+  mentionsCount Int           @default(0)
   loginEmail    String?       @unique
   loginPassword String?
   reservations  Reservation[]
+  reviews       Review[]
+  streams       Stream[]
   promos        Promo[]
   areas         RestaurantArea[]
   createdAt     DateTime      @default(now())
@@ -70,6 +80,7 @@ model RestaurantArea {
   seatoOccupied   Int        @default(0)
   walkInOccupied  Int        @default(0)
   restaurant      Restaurant @relation(fields: [restaurantId], references: [id])
+  reservations    Reservation[]
 }
 
 model Reservation {
@@ -82,6 +93,8 @@ model Reservation {
   guests         Int
   tableType      String     // Nama area (e.g., "Indoor Area")
   areaId         String?    // ID area restoran yang dipilih
+  area           RestaurantArea? @relation(fields: [areaId], references: [id])
+  assignedTable  String?
   invoiceId      String?    @unique
   totalAmount    Int?
   paymentStatus  String?    @default("Unpaid")
@@ -91,6 +104,39 @@ model Reservation {
   promo          Promo?     @relation(fields: [promoId], references: [id])
   user           User       @relation(fields: [userId], references: [id])
   restaurant     Restaurant @relation(fields: [restaurantId], references: [id])
+  review         Review?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
+}
+
+model Review {
+  id             String      @id @default(uuid())
+  userId         String
+  restaurantId   String
+  reservationId  String?     @unique // One review per reservation
+  rating         Int         // 1 to 5
+  comment        String?
+  user           User        @relation(fields: [userId], references: [id])
+  restaurant     Restaurant  @relation(fields: [restaurantId], references: [id])
+  reservation    Reservation? @relation(fields: [reservationId], references: [id])
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model Stream {
+  id             String      @id @default(uuid())
+  authorName     String
+  authorAvatar   String?
+  type           String      // "USER_REVIEW" | "RESTO_PROMO" | "USER_POST"
+  content        String
+  rating         Int?        // Only if it's a review
+  imageUrl       String?     // Optional image for promo/review
+  likes          Int         @default(0)
+  restaurantId   String?     // Tagged restaurant
+  restaurant     Restaurant? @relation(fields: [restaurantId], references: [id])
+  parentId       String?
+  parent         Stream?     @relation("StreamReplies", fields: [parentId], references: [id])
+  replies        Stream[]    @relation("StreamReplies")
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 }

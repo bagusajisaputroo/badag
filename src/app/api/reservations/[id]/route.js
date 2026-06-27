@@ -39,6 +39,7 @@ export async function PATCH(request, { params }) {
     if (body.paymentStatus) updateData.paymentStatus = body.paymentStatus;
     if (body.cancelReason) updateData.cancelReason = body.cancelReason;
     if (cancelledBy) updateData.cancelledBy = cancelledBy;
+    if (body.assignedTable !== undefined) updateData.assignedTable = body.assignedTable;
 
     // ============================================
     // LOGIC: Handle seatoOccupied changes per area
@@ -114,9 +115,12 @@ export async function PATCH(request, { params }) {
     //    → TIDAK tambah cancelCount, TIDAK ubah seatoOccupied
     //    (No additional logic needed — status change only)
 
-    // 5. Confirmed → Selesai (Admin marks as completed)
+    // 5. Confirmed → Sedang Makan (Check In)
+    //    → Status change only. seatoOccupied remains the same (already +1 when Confirmed).
+
+    // 6. Confirmed or Sedang Makan → Selesai (Admin marks as completed / Check Out)
     //    → seatoOccupied -1
-    if (oldStatus === 'Confirmed' && newStatus === 'Selesai') {
+    if ((oldStatus === 'Confirmed' || oldStatus === 'Sedang Makan') && newStatus === 'Selesai') {
       await decrementSeatoOccupied();
     }
 

@@ -102,6 +102,61 @@ export default function MyRestoProfile() {
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [notifSentTo, setNotifSentTo] = useState(null);
 
+  // --- WALK-IN INTERACTIVE STATE ---
+  const [explicitWalkIns, setExplicitWalkIns] = useState([]);
+  const [pendingWalkInTable, setPendingWalkInTable] = useState(null);
+  const [walkInReminder, setWalkInReminder] = useState(null); // { id, areaName, tableNumber }
+
+  // 10-second timer for testing (in real app, this would be 5 minutes = 300000ms)
+  const TIMER_DURATION_MS = 10000; 
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const expired = explicitWalkIns.find(w => !w.notified && (now - w.assignedAt) > TIMER_DURATION_MS);
+      
+      if (expired) {
+        setExplicitWalkIns(prev => prev.map(w => w.id === expired.id ? { ...w, notified: true } : w));
+        const area = areas.find(a => a.id === expired.areaId);
+        setWalkInReminder({ id: expired.id, areaName: area?.name || '', tableNumber: expired.tableIndex + 1 });
+      }
+    }, 2000); // Check every 2 seconds
+    return () => clearInterval(interval);
+  }, [explicitWalkIns, areas]);
+
+  const confirmWalkIn = () => {
+    if (pendingWalkInTable) {
+      updateArea(pendingWalkInTable.areaId, 'walkin', 1);
+      setExplicitWalkIns(prev => [
+        ...prev, 
+        { 
+          id: Math.random().toString(36).substr(2, 9),
+          areaId: pendingWalkInTable.areaId, 
+          tableIndex: pendingWalkInTable.tableIndex,
+          assignedAt: Date.now(),
+          notified: false
+        }
+      ]);
+      setPendingWalkInTable(null);
+    }
+  };
+
+  const finishWalkIn = (walkInId) => {
+    const walkIn = explicitWalkIns.find(w => w.id === walkInId);
+    if (walkIn) {
+      updateArea(walkIn.areaId, 'walkin', -1);
+      setExplicitWalkIns(prev => prev.filter(w => w.id !== walkInId));
+    }
+    if (walkInReminder && walkInReminder.id === walkInId) {
+      setWalkInReminder(null);
+    }
+  };
+
+  const resetTimer = (walkInId) => {
+    setExplicitWalkIns(prev => prev.map(w => w.id === walkInId ? { ...w, notified: false, assignedAt: Date.now() } : w));
+    setWalkInReminder(null);
+  };
+
   // --- COMPUTED GLOBALS ---
   const totalTables = areas.reduce((sum, a) => sum + a.total, 0);
   const seatoOccupied = areas.reduce((sum, a) => sum + a.seatoOccupied, 0);
@@ -249,57 +304,55 @@ export default function MyRestoProfile() {
 
   return (
     <div className="screen-content" style={{ background: '#F8FAFC', minHeight: '100vh', paddingBottom: '80px' }}>
-      
+      <div style={{ width: '100%', background: '#F8FAFC', minHeight: '100vh' }}>
       {/* Header */}
-      <div style={{ background: '#1E40AF', padding: '64px 20px 24px', color: 'white' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div>
-            <h1 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>{restaurantName}</h1>
-            <p style={{ fontSize: '12px', color: '#93C5FD', marginTop: '4px' }}>Dashboard Staff • Total {totalTables} Meja</p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: '20px' }}>
-            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 600 }}>
-              RN
-            </div>
-            <span style={{ fontSize: '12px', fontWeight: 600 }}>Rani</span>
-          </div>
+      <div style={{ background: 'white', padding: '32px 48px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'sticky', top: 0, zIndex: 30 }}>
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', margin: '0 0 4px 0' }}>{restaurantName}</h1>
+          <p style={{ fontSize: '14px', color: '#64748B', margin: 0 }}>Dashboard Staff • Total {totalTables} Meja</p>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#F1F5F9', padding: '6px 16px 6px 6px', borderRadius: '30px' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#1B3461', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700 }}>
+            RN
+          </div>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#1E293B' }}>Rani</span>
+        </div>
+      </div>
 
-        {/* Master Occupancy Card */}
-        <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: '16px', padding: '20px', border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+      <div style={{ padding: '32px 48px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        
+        {/* Master Occupancy Card - Redesigned to match BI Theme */}
+        <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div>
-              <div style={{ fontSize: '12px', color: '#93C5FD', fontWeight: 600, marginBottom: '4px' }}>Meja Terisi Saat Ini</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <span style={{ fontSize: '36px', fontWeight: 800, lineHeight: 1 }}>{totalOccupied}</span>
-                <span style={{ fontSize: '16px', color: '#93C5FD', fontWeight: 600 }}>/ {totalTables}</span>
+              <div style={{ fontSize: '12px', color: '#64748B', fontWeight: 700, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Meja Terisi Saat Ini</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                <span style={{ fontSize: '40px', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{totalOccupied}</span>
+                <span style={{ fontSize: '16px', color: '#94A3B8', fontWeight: 600 }}>/ {totalTables}</span>
               </div>
-              <div style={{ fontSize: '12px', color: '#93C5FD', marginTop: '4px' }}>
+              <div style={{ fontSize: '13px', color: '#64748B', marginTop: '8px' }}>
                 {totalAvailable <= 0 ? 'Semua meja terisi' : `${totalAvailable} meja kosong`}
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '12px', color: '#93C5FD', fontWeight: 600, marginBottom: '4px' }}>Occupancy</div>
-              <div style={{ fontSize: '24px', fontWeight: 800 }}>{pct}%</div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 700, background: statusBg, color: statusColor, marginTop: '8px' }}>
+              <div style={{ fontSize: '12px', color: '#64748B', fontWeight: 700, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tingkat Okupansi</div>
+              <div style={{ fontSize: '32px', fontWeight: 800, color: '#1E40AF' }}>{pct}%</div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 700, background: statusBg, color: statusColor, marginTop: '8px' }}>
                 {statusLabel}
               </div>
             </div>
           </div>
 
           {/* Dual Progress Bar */}
-          <div style={{ height: '10px', background: 'rgba(255,255,255,0.2)', borderRadius: '10px', overflow: 'hidden', display: 'flex' }}>
+          <div style={{ height: '12px', background: '#F1F5F9', borderRadius: '10px', overflow: 'hidden', display: 'flex' }}>
             <div style={{ width: `${walkInPct}%`, background: '#F59E0B', transition: 'width 0.4s ease' }} title={`Walk-in: ${walkInOccupied}`} />
             <div style={{ width: `${seatoPct}%`, background: '#3B82F6', transition: 'width 0.4s ease' }} title={`SEATO: ${seatoOccupied}`} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '10px', color: 'rgba(255,255,255,0.7)' }}>
-            <span>Walk-in: {walkInOccupied}</span>
-            <span>SEATO: {seatoOccupied}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', fontSize: '12px', fontWeight: 600 }}>
+            <span style={{ color: '#B45309' }}>Walk-in: {walkInOccupied} Meja</span>
+            <span style={{ color: '#1D4ED8' }}>SEATO: {seatoOccupied} Meja</span>
           </div>
         </div>
-      </div>
-
-      <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '-10px' }}>
         
         {/* Allocation Manager (Quota Split) */}
         <div style={{ background: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #E2E8F0' }}>
@@ -396,42 +449,58 @@ export default function MyRestoProfile() {
                   </div>
 
                   {/* Grid Meja */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px', marginBottom: '16px' }}>
                     {Array.from({ length: area.total }).map((_, i) => {
-                      // Zone-based rendering: SEATO zone (0 to seatoAllocated-1), then Walk-in zone
+                      // Check if it's explicitly assigned as a walk-in
+                      const explicitWalkIn = explicitWalkIns.find(w => w.areaId === area.id && w.tableIndex === i);
+                      
+                      // Zone-based rendering for SEATO only
                       const isSeatoZone = i < area.seatoAllocated;
                       let isSeato = false;
-                      let isWalkIn = false;
+                      let isWalkIn = !!explicitWalkIn; // Priority to explicit Walk-in
                       let isOverflowWalkin = false;
 
-                      if (isSeatoZone) {
-                        // SEATO zone: first seatoOccupied slots are filled SEATO
-                        isSeato = i < area.seatoOccupied;
-                        // Check if walk-in overflowed into SEATO zone
-                        if (!isSeato) {
-                          const overflowCount = Math.max(0, area.walkInOccupied - areaWalkInQuota);
-                          if (overflowCount > 0) {
-                            const emptyInSeatoZone = area.seatoAllocated - area.seatoOccupied;
-                            const overflowInSeatoZone = Math.min(overflowCount, emptyInSeatoZone);
-                            isOverflowWalkin = (i - area.seatoOccupied) < overflowInSeatoZone;
-                            isWalkIn = isOverflowWalkin;
+                      if (!isWalkIn) {
+                        if (isSeatoZone) {
+                          // SEATO zone: first seatoOccupied slots are filled SEATO
+                          isSeato = i < area.seatoOccupied;
+                        } else {
+                          // If we have legacy walkInOccupied that are NOT explicitly tracked, fill them sequentially
+                          // But to avoid double-counting, we'd subtract explicitWalkIns.length
+                          // For simplicity in this mockup, we only rely on explicit Walk-in array!
+                          // If they want sequential, we could do it here, but explicit is better.
+                          const legacyWalkIns = Math.max(0, area.walkInOccupied - explicitWalkIns.filter(w=>w.areaId === area.id).length);
+                          if (legacyWalkIns > 0) {
+                            const walkInZoneIndex = i - area.seatoAllocated;
+                            if (walkInZoneIndex >= 0 && walkInZoneIndex < legacyWalkIns) {
+                              isWalkIn = true;
+                            }
                           }
                         }
-                      } else {
-                        // Walk-in zone: fill from left of this zone
-                        const walkInZoneIndex = i - area.seatoAllocated;
-                        const normalWalkIn = Math.min(area.walkInOccupied, areaWalkInQuota);
-                        isWalkIn = walkInZoneIndex < normalWalkIn;
                       }
+                      
                       let isEmpty = !isSeato && !isWalkIn;
 
                       return (
-                        <div key={i} style={{ 
+                        <div 
+                          key={i} 
+                          onClick={() => {
+                            if (isEmpty) {
+                              setPendingWalkInTable({ areaId: area.id, tableIndex: i, areaName: area.name });
+                            } else if (explicitWalkIn) {
+                              // If it's an explicit walk-in, clicking it will checkout
+                              if(confirm(`Selesaikan sesi Walk-in untuk Meja ${i+1}?`)) {
+                                finishWalkIn(explicitWalkIn.id);
+                              }
+                            }
+                          }}
+                          style={{ 
                           aspectRatio: '1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          background: isSeato ? '#DBEAFE' : isWalkIn ? (isOverflowWalkin ? '#F1F5F9' : '#FEF3C7') : '#F1F5F9',
-                          border: `1px solid ${isSeato ? '#93C5FD' : isWalkIn ? (isOverflowWalkin ? '#94A3B8' : '#FDE68A') : '#E2E8F0'}`,
-                          color: isSeato ? '#1D4ED8' : isWalkIn ? (isOverflowWalkin ? '#475569' : '#B45309') : '#94A3B8',
+                          background: isSeato ? '#DBEAFE' : isWalkIn ? '#FEF3C7' : '#F1F5F9',
+                          border: `1px solid ${isSeato ? '#93C5FD' : isWalkIn ? '#FDE68A' : '#E2E8F0'}`,
+                          color: isSeato ? '#1D4ED8' : isWalkIn ? '#B45309' : '#94A3B8',
                           transition: 'all 0.2s ease',
+                          cursor: isEmpty || explicitWalkIn ? 'pointer' : 'default',
                           boxShadow: !isEmpty ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
                         }}>
                           {isEmpty ? (
@@ -446,22 +515,6 @@ export default function MyRestoProfile() {
 
                   {/* Area Action Buttons */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: '#F8FAFC', padding: '12px', borderRadius: '12px' }}>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button 
-                        onClick={() => updateArea(area.id, 'walkin', -1)}
-                        disabled={area.walkInOccupied === 0}
-                        style={{ flex: 1, border: '1px solid #FDE68A', borderRadius: '8px', padding: '8px', fontSize: '11px', fontWeight: 600, background: 'white', color: '#B45309', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', opacity: area.walkInOccupied === 0 ? 0.4 : 1 }}
-                      >
-                        <IconMinus size={14} /> Walk-in
-                      </button>
-                      <button 
-                        onClick={() => updateArea(area.id, 'walkin', 1)}
-                        disabled={areaOccupied >= area.total}
-                        style={{ flex: 1, border: 'none', borderRadius: '8px', padding: '8px', fontSize: '11px', fontWeight: 700, background: '#F59E0B', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', opacity: (areaOccupied >= area.total) ? 0.4 : 1 }}
-                      >
-                        <IconPlus size={14} /> Walk-in
-                      </button>
-                    </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button 
                         onClick={() => updateArea(area.id, 'seato', -1)}
@@ -513,64 +566,48 @@ export default function MyRestoProfile() {
           </div>
         )}
 
-        {/* Notify Panel Triggered when available */}
-        {notifyOpen && !notifSentTo && (
-          <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.06)' }}>
-            <div style={{ background: '#FEF3C7', padding: '16px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #FDE68A' }}>
-              <IconBell size={20} color="#D97706" />
-              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#92400E', margin: 0 }}>Panggil Antrean Berikutnya!</h3>
-            </div>
-            <div style={{ padding: '16px' }}>
-              <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '12px' }}>Meja kosong tersedia, notif antrean untuk berapa orang?</p>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {[2, 4, 6, 8].map(pax => (
-                  <button 
-                    key={pax}
-                    onClick={() => handleNotify(pax, waitlist[0].name)}
-                    style={{ flex: '1 1 40%', padding: '10px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#0F172A', fontSize: '13px', fontWeight: 600 }}
-                  >
-                    {pax} Orang
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Waitlist List */}
-        <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-          <div style={{ padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <IconListNumbers size={20} color="#3B82F6" />
-              <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A', margin: 0 }}>Daftar Waitlist</h2>
-              <span style={{ background: '#EFF6FF', color: '#1E40AF', padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700 }}>{waitlist.length}</span>
-            </div>
-            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: 500 }}>Est. 20 mnt</span>
-          </div>
-
-          <div>
-            {waitlist.map((item, index) => (
-              <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderBottom: '1px solid #F8FAFC', background: notifSentTo === item.name ? '#FFFBEB' : 'white' }}>
-                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: notifSentTo === item.name ? '#2563EB' : '#EFF6FF', color: notifSentTo === item.name ? 'white' : '#1E40AF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700 }}>
-                  {index + 1}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>{item.name}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
-                    <IconUsers size={14} /> {item.pax} orang • Menunggu {item.waitTime}
-                  </div>
-                </div>
-                <div>
-                  <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: 700, background: notifSentTo === item.name ? '#FEF3C7' : '#F1F5F9', color: notifSentTo === item.name ? '#92400E' : '#64748B' }}>
-                    {notifSentTo === item.name ? 'Dinotif' : 'Menunggu'}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
       </div>
+      </div>
+
+      {/* Pending WalkIn Confirm Modal */}
+      {pendingWalkInTable && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '360px', textAlign: 'center' }}>
+            <div style={{ width: '48px', height: '48px', background: '#FEF3C7', color: '#D97706', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <IconUsers size={24} />
+            </div>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#0F172A' }}>Assign Walk-in</h3>
+            <p style={{ margin: '0 0 24px 0', fontSize: '14px', color: '#64748B', lineHeight: '1.5' }}>
+              Masukkan tamu Walk-in ke <strong>Meja {pendingWalkInTable.tableIndex + 1}</strong> di <strong>{pendingWalkInTable.areaName}</strong>?
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={() => setPendingWalkInTable(null)} style={{ flex: 1, padding: '12px', background: '#F1F5F9', color: '#64748B', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer' }}>Batal</button>
+              <button onClick={confirmWalkIn} style={{ flex: 1, padding: '12px', background: '#F59E0B', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer' }}>Ya, Assign</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Timer Reminder Notification */}
+      {walkInReminder && (
+        <div style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', background: 'white', border: '1px solid #E2E8F0', padding: '16px', borderRadius: '16px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)', zIndex: 200, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '40px', height: '40px', background: '#FEF2F2', color: '#EF4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <IconBell size={20} />
+            </div>
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>Pengingat Meja Walk-in!</div>
+              <div style={{ fontSize: '12px', color: '#64748B' }}>Tamu di <strong>{walkInReminder.areaName} - Meja {walkInReminder.tableNumber}</strong> sudah cukup lama. Apakah mereka masih di sana?</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => resetTimer(walkInReminder.id)} style={{ flex: 1, padding: '10px', background: '#F1F5F9', color: '#475569', border: 'none', borderRadius: '10px', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>Masih (Reset)</button>
+            <button onClick={() => finishWalkIn(walkInReminder.id)} style={{ flex: 1, padding: '10px', background: '#EF4444', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>Sudah Selesai</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

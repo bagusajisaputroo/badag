@@ -16,14 +16,21 @@ import ReservasiScreen from '../screens/ReservasiScreen';
 import AkunScreen from '../screens/AkunScreen';
 import RestaurantDetailScreen from '../screens/RestaurantDetailScreen';
 import PromoDetailScreen from '../screens/PromoDetailScreen';
+import PromoScreen from '../screens/PromoScreen';
+import CommunityScreen from '../screens/CommunityScreen';
+import CategoryDetailScreen from '../screens/CategoryDetailScreen';
+import NearbyScreen from '../screens/NearbyScreen';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState('home');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedRestoForBooking, setSelectedRestoForBooking] = useState('');
   const [viewingRestaurant, setViewingRestaurant] = useState(null);
   const [viewingPromo, setViewingPromo] = useState(null);
+  const [viewingCategory, setViewingCategory] = useState(null);
+  const [viewingNearby, setViewingNearby] = useState(false);
   const [preSelectedPromoId, setPreSelectedPromoId] = useState('');
   
   const [newBookingInvoice, setNewBookingInvoice] = useState(null);
@@ -47,7 +54,8 @@ export default function App() {
           tableType: bookingData.tableType,
           areaId: bookingData.areaId,
           notes: bookingData.notes,
-          promoId: bookingData.promoId
+          promoId: bookingData.promoId,
+          userId: currentUser?.id
         })
       });
 
@@ -115,17 +123,44 @@ export default function App() {
       );
     }
 
+    if (viewingCategory) {
+      return (
+        <CategoryDetailScreen 
+          category={viewingCategory}
+          onBack={() => setViewingCategory(null)}
+          onSelectRestaurant={setViewingRestaurant}
+        />
+      );
+    }
+
+    if (viewingNearby) {
+      return (
+        <NearbyScreen 
+          onBack={() => setViewingNearby(false)}
+          onSelectRestaurant={setViewingRestaurant}
+        />
+      );
+    }
+
     switch (activeTab) {
       case 'home':
-        return <HomeScreen onSearch={() => {}} onSelectRestaurant={setViewingRestaurant} onSelectPromo={setViewingPromo} />;
-      case 'explore':
-        return <ExploreScreen onSelectRestaurant={setViewingRestaurant} />;
+        return <HomeScreen 
+                 onSearch={() => {}} 
+                 onSelectRestaurant={setViewingRestaurant} 
+                 onSelectPromo={setViewingPromo} 
+                 onOpenCategory={setViewingCategory}
+                 onOpenNearby={() => setViewingNearby(true)}
+               />;
+      case 'promo':
+        return <PromoScreen />;
+      case 'community':
+        return <CommunityScreen currentUser={currentUser} />;
       case 'reservasi':
-        return <ReservasiScreen navigateToExplore={() => setActiveTab('explore')} />;
+        return <ReservasiScreen currentUser={currentUser} navigateToExplore={() => setActiveTab('home')} />;
       case 'akun':
-        return <AkunScreen />;
+        return <AkunScreen currentUser={currentUser} onLogout={() => { setIsLoggedIn(false); setCurrentUser(null); setActiveTab('home'); }} />;
       default:
-        return <HomeScreen />;
+        return <HomeScreen currentUser={currentUser} />;
     }
   };
 
@@ -133,11 +168,14 @@ export default function App() {
     <>
       <DeviceFrame activeTab={activeTab}>
         {!isLoggedIn ? (
-          <LoginScreen onLogin={() => setIsLoggedIn(true)} />
+          <LoginScreen onLogin={(user) => {
+            setCurrentUser(user);
+            setIsLoggedIn(true);
+          }} />
         ) : (
           <>
             {renderActiveScreen()}
-            {!viewingRestaurant && !viewingPromo && <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />}
+            {!viewingRestaurant && !viewingPromo && !viewingCategory && !viewingNearby && <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />}
             
             <BottomSheet 
               isOpen={sheetOpen} 

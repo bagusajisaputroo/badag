@@ -1,17 +1,22 @@
 "use client";
 import React from 'react';
-import DeviceFrame from '../../components/layout/DeviceFrame';
-import AdminBottomNav from '../../components/layout/AdminBottomNav';
+import AdminSidebar from '../../components/layout/AdminSidebar';
 import { usePathname } from 'next/navigation';
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
   const isLoginPage = pathname === '/admin/login';
 
+  if (isLoginPage) {
+    return <div style={{ minHeight: '100vh', background: '#F8FAFC' }}>{children}</div>;
+  }
+
   return (
-    <DeviceFrame activeTab={pathname}>
-      {children}
-      {!isLoginPage && <AdminBottomNav />}
-    </DeviceFrame>
+    <div style={{ display: 'flex', width: '100vw', minHeight: '100vh', background: '#F8FAFC' }}>
+      <AdminSidebar />
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {children}
+      </div>
+    </div>
   );
 }

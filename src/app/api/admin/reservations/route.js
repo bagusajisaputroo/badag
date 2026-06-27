@@ -64,7 +64,7 @@ export async function GET(request) {
     let reservations = await prismaClient.reservation.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
-      include: { restaurant: true, user: true, promo: true }
+      include: { restaurant: true, user: true, promo: true, area: true }
     });
     
     reservations = await checkAutoTerminate(reservations);

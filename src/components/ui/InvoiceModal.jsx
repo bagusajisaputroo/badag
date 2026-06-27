@@ -33,10 +33,10 @@ export default function InvoiceModal({ invoice, onClose }) {
             <span className="text-muted" style={{ fontSize: '13px' }}>Detail Tamu</span>
             <span className="text-navy" style={{ fontWeight: 600, fontSize: '13px' }}>{invoice.guests} Org • {invoice.tableType}</span>
           </div>
-          <div className="flex-row justify-between" style={{ marginBottom: '8px' }}>
+          {/* <div className="flex-row justify-between" style={{ marginBottom: '8px' }}>
             <span className="text-muted" style={{ fontSize: '13px' }}>Status Pembayaran</span>
             <span style={{ fontWeight: 600, fontSize: '13px', color: invoice.paymentStatus === 'Paid' ? '#0EA5A0' : '#F59E0B' }}>{invoice.paymentStatus || 'Unpaid'}</span>
-          </div>
+          </div> */}
           {invoice.promo && (
             <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px dashed #CBD5E1' }}>
               <span className="text-muted" style={{ fontSize: '13px', display: 'block', marginBottom: '8px' }}>Promo Digunakan</span>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import InvoiceModal from '../components/ui/InvoiceModal';
 import CancelModal from '../components/ui/CancelModal';
+import ReviewModal from '../components/ui/ReviewModal';
 
-export default function ReservasiScreen({ navigateToExplore }) {
+export default function ReservasiScreen({ navigateToExplore, currentUser }) {
   const [resTab, setResTab] = useState('upcoming');
   const [reservations, setReservations] = useState({ upcoming: [], selesai: [], dibatalkan: [] });
   
@@ -12,10 +13,14 @@ export default function ReservasiScreen({ navigateToExplore }) {
   const [cancelTargetId, setCancelTargetId] = useState(null);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
 
+  const [selectedResForReview, setSelectedResForReview] = useState(null);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+
   const [userStats, setUserStats] = useState({ isBanned: false, cancelCount: 0 });
 
   const fetchReservations = () => {
-    fetch('/api/reservations')
+    if (!currentUser) return;
+    fetch(`/api/reservations?userId=${currentUser.id}`)
       .then(res => res.json())
       .then(data => {
         if (data && Array.isArray(data.upcoming)) {
@@ -27,7 +32,7 @@ export default function ReservasiScreen({ navigateToExplore }) {
 
   useEffect(() => {
     fetchReservations();
-  }, []);
+  }, [currentUser]);
 
   const openCancel = (id) => {
     setCancelTargetId(id);
@@ -52,6 +57,36 @@ export default function ReservasiScreen({ navigateToExplore }) {
   const openInvoice = (res) => {
     setSelectedInvoice(res);
     setIsInvoiceOpen(true);
+  };
+
+  const handleReviewSubmit = async ({ rating, comment }) => {
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          restaurantId: selectedResForReview.restaurantId,
+          reservationId: selectedResForReview.id,
+          rating,
+          comment
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        alert('Gagal mengirim ulasan: ' + (data.error || 'Unknown error'));
+        return;
+      }
+
+      setIsReviewOpen(false);
+      setSelectedResForReview(null);
+      alert('Terima kasih atas ulasan Anda!');
+    } catch(e) {
+      console.error(e);
+      alert('Gagal mengirim ulasan (Network Error)');
+    }
   };
 
   return (
@@ -101,7 +136,7 @@ export default function ReservasiScreen({ navigateToExplore }) {
                 </div>
                 <div className="flex-row gap-3">
                   <button className="btn-outline-navy" style={{ flex: 1 }} onClick={() => openInvoice(res)}>Lihat Invoice</button>
-                  <button className="btn-outline-teal" style={{ flex: 1 }}>Beri Ulasan</button>
+                  <button className="btn-outline-teal" style={{ flex: 1 }} onClick={() => { setSelectedResForReview(res); setIsReviewOpen(true); }}>Beri Ulasan</button>
                 </div>
               </div>
             ))}
@@ -145,6 +180,14 @@ export default function ReservasiScreen({ navigateToExplore }) {
           onClose={() => setIsCancelOpen(false)} 
           onConfirm={handleCancelConfirm}
           cancelCount={userStats.cancelCount}
+        />
+      )}
+
+      {isReviewOpen && (
+        <ReviewModal 
+          reservation={selectedResForReview}
+          onClose={() => setIsReviewOpen(false)}
+          onSubmit={handleReviewSubmit}
         />
       )}
     </div>

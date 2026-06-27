@@ -5,9 +5,34 @@ export default function LoginScreen({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = (e) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (onLogin) onLogin();
+    setIsLoading(true);
+    setErrorMsg('');
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Login failed');
+        return;
+      }
+
+      if (onLogin) onLogin(data.user);
+    } catch (err) {
+      setErrorMsg('Network error. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -40,6 +65,12 @@ export default function LoginScreen({ onLogin }) {
           <h1 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '8px' }}>SEATO</h1>
           <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px' }}>Find and book the best tables in town.</p>
         </div>
+
+        {errorMsg && (
+          <div style={{ background: 'rgba(255,0,0,0.1)', color: '#ff6b6b', padding: '12px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center', fontSize: '14px' }}>
+            {errorMsg}
+          </div>
+        )}
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ position: 'relative' }}>
@@ -94,7 +125,7 @@ export default function LoginScreen({ onLogin }) {
             <a href="#" style={{ color: '#0EA5A0', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}>Forgot Password?</a>
           </div>
 
-          <button type="submit" style={{
+          <button type="submit" disabled={isLoading} style={{
             background: '#0EA5A0',
             color: 'white',
             border: 'none',
@@ -106,11 +137,12 @@ export default function LoginScreen({ onLogin }) {
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px',
-            cursor: 'pointer',
+            cursor: isLoading ? 'not-allowed' : 'pointer',
             boxShadow: '0 8px 20px rgba(14, 165, 160, 0.3)',
-            marginTop: '16px'
+            marginTop: '16px',
+            opacity: isLoading ? 0.7 : 1
           }}>
-            <IconLogin size={20} /> Login
+            <IconLogin size={20} /> {isLoading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 

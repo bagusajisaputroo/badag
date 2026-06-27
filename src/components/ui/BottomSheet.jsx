@@ -225,7 +225,7 @@ export default function BottomSheet({ isOpen, onClose, restaurant, onConfirm, pr
                       background: slot.isFull ? '#FEF2F2' : '#ECFDF5',
                       color: slot.isFull ? '#EF4444' : '#10B981'
                     }}>
-                      {slot.isFull ? 'Full' : `${slot.totalAvailable} Slot`}
+                      {slot.isFull ? 'Full' : `${slot.totalAvailable} Meja`}
                     </div>
                   </div>
                 ))
@@ -268,7 +268,7 @@ export default function BottomSheet({ isOpen, onClose, restaurant, onConfirm, pr
                             background: isFull ? '#FEF2F2' : tableType === area.name ? 'rgba(255,255,255,0.2)' : '#ECFDF5',
                             color: isFull ? '#EF4444' : tableType === area.name ? 'white' : '#10B981'
                           }}>
-                            {isFull ? 'Full' : `${area.available} Slot`}
+                            {isFull ? 'Full' : `${area.available} Meja`}
                           </div>
                         </div>
                       );

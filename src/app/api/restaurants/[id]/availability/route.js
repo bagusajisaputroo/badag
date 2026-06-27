@@ -41,19 +41,32 @@ export async function GET(request, { params }) {
       let totalAvailable = 0;
       const areaAvailability = {};
 
+      const todayStr = new Date().toISOString().split('T')[0];
+
       areas.forEach(area => {
-        // Count how many reservations exist for this area at this time
-        // Match by areaId (correct field) — fallback to tableType matching area name for legacy data
         const bookedCount = reservations.filter(r => 
           r.time === time && (r.areaId === area.id || r.tableType === area.name)
         ).length;
         
-        // Assume 1 reservation = 1 table (slot)
-        const availableInArea = Math.max(0, area.seatoAllocated - bookedCount);
+        let effectiveAllocated = area.seatoAllocated;
+        
+        // Integrasi Real-Time Resto App: 
+        // Jika pelanggan memesan untuk HARI INI, kita harus memperhitungkan pengunjung Walk-in 
+        // yang meluber, dan juga pengunjung Seato yang SEDANG MAKAN saat ini (seatoOccupied).
+        if (date === todayStr) {
+          const areaWalkInQuota = area.total - area.seatoAllocated;
+          const overflowCount = Math.max(0, area.walkInOccupied - areaWalkInQuota);
+          // Kurangi kuota dengan meja yang saat ini sedang diduduki (seatoOccupied) dan walk-in overflow
+          effectiveAllocated = Math.max(0, area.seatoAllocated - area.seatoOccupied - overflowCount);
+        }
+
+        // Available is effectiveAllocated minus any future reservations for this exact time
+        const availableInArea = Math.max(0, effectiveAllocated - bookedCount);
         
         areaAvailability[area.id] = {
           name: area.name,
           allocated: area.seatoAllocated,
+          effectiveAllocated: effectiveAllocated,
           booked: bookedCount,
           available: availableInArea
         };

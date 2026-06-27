@@ -55,13 +55,19 @@ async function checkAutoTerminate(reservations) {
 
 export async function GET(request) {
   try {
-    // Optionally we can get userId from query string, but for now we'll just fetch all
-    // or fetch for the first user since it's a mockup without real auth
-    let user = await prismaClient.user.findFirst();
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+
+    const user = await prismaClient.user.findUnique({
+      where: { id: userId }
+    });
+
     if (!user) {
-      user = await prismaClient.user.create({
-        data: { name: 'Bagus', email: 'bagus@example.com', initials: 'BG', location: 'Bandung' }
-      });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     let reservations = await prismaClient.reservation.findMany({
@@ -78,6 +84,7 @@ export async function GET(request) {
 
     const formatRes = (r) => ({
       id: r.id,
+      restaurantId: r.restaurantId,
       restaurantName: r.restaurant.name,
       status: r.status,
       date: r.date,
@@ -126,11 +133,18 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    let user = await prismaClient.user.findFirst();
+    const userId = body.userId;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+
+    const user = await prismaClient.user.findUnique({
+      where: { id: userId }
+    });
+
     if (!user) {
-      user = await prismaClient.user.create({
-        data: { name: 'Bagus', email: 'bagus@example.com', initials: 'BG', location: 'Bandung' }
-      });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const restaurant = await prismaClient.restaurant.findFirst({
